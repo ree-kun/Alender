@@ -1,0 +1,8 @@
+<resources>
+    <dimen name="alarm_list_margin">16dp</dimen>
+    <dimen name="add_btn_margin">36dp</dimen>
+
+    <dimen name="alarm_setting_title_width">250dp</dimen>
+    <dimen name="alarm_setting_title_height">36dp</dimen>
+    <dimen name="alarm_setting_time_size">100dp</dimen>
+</resources>
