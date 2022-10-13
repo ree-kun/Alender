@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">CustomAlarm</string>
+    <string name="app_name">YourAppName</string>
+    <string name="hint">"言語設定されたものを入力"</string>
+    <string name="button">Text To Speech</string>
 </resources>
