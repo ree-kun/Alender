@@ -8,6 +8,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.NumberPicker
 import androidx.appcompat.app.AppCompatActivity
+import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
+import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
 import com.example.customalarm.util.DatabaseHelper
 import com.example.customalarm.util.DatabaseHelper.Companion.TABLE_NAME
 
@@ -28,6 +30,12 @@ class InputActivity : AppCompatActivity() {
 
         settingTimeDrum()
         settingOperationButton()
+
+        when (intent.getIntExtra("editMode", -1)) {
+            CREATE_MODE -> { /** do nothing */ }
+            EDIT_MODE -> { setupEditMode() }
+            else -> { /** do nothing */ }
+        }
     }
 
     private fun settingTimeDrum() {
@@ -62,8 +70,6 @@ class InputActivity : AppCompatActivity() {
             val minute = minutePicker.value
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
-            Log.d("debug", editAlarmTitle)
-            // データ登録
             try {
                 helper.writableDatabase.use { db ->
                     val cv = ContentValues()
@@ -77,4 +83,27 @@ class InputActivity : AppCompatActivity() {
             finish()
         }
     }
+
+    private fun setupEditMode() {
+        val alarmId = intent.getIntExtra("alarmId", -1)
+        Log.d("debug", "alarmId: $alarmId")
+        try {
+            helper.readableDatabase.use { db ->
+                val cols = arrayOf("id", "title")
+                val params = arrayOf(alarmId.toString())
+                val cs = db.query(
+                    TABLE_NAME, cols, "id = ?", params,
+                    null, null, "id", null
+                )
+                cs.moveToFirst()
+
+                val title = cs.getString(1)
+                Log.d("debug", "title: $title")
+                findViewById<EditText>(R.id.editAlarmTitle).setText(cs.getString(1))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
 }

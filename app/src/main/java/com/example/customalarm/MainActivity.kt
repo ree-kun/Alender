@@ -2,10 +2,12 @@ package com.example.customalarm
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.customalarm.common.EditMode
 import com.example.customalarm.entity.AlarmSetting
 import com.example.customalarm.listcomponent.ListAdapter
 import com.example.customalarm.util.DatabaseHelper
@@ -23,22 +25,23 @@ class MainActivity : AppCompatActivity() {
 
         helper = DatabaseHelper.getInstance(this)
         alarmSettingList = generateAlarmSettingList()
+        updateAlarmSettingList()
 
         // フローティングアクションボタンの設定
         val addBtn = findViewById<FloatingActionButton>(R.id.addBtn)
         addBtn.setOnClickListener {
             val i = Intent(this, InputActivity::class.java)
-            startActivityForResult(i, 1)
+            i.putExtra("editMode", EditMode.CREATE_MODE)
+            this.startForResult.launch(i)
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        Log.d("debug", "onActivityResult")
-
-        val dataAlarms = loadAlarms()
-        Log.d("debug", dataAlarms.toString())
-        this.updateAlarmSettingList(dataAlarms)
+    private val startForResult = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result: ActivityResult? ->
+        if (result?.resultCode == RESULT_OK) {
+            this.updateAlarmSettingList()
+        }
     }
 
     private fun generateAlarmSettingList(): RecyclerView {
@@ -49,6 +52,11 @@ class MainActivity : AppCompatActivity() {
         alarmSettingList.layoutManager = manager
 
         return alarmSettingList
+    }
+
+    private fun updateAlarmSettingList() {
+        val dataAlarms = loadAlarms()
+        this.setAlarmSettingList(dataAlarms)
     }
 
     private fun setAlarmSettingList(data: ArrayList<AlarmSetting>) {
@@ -74,9 +82,5 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return data
-    }
-
-    private fun updateAlarmSettingList(data: ArrayList<AlarmSetting>) {
-        this.setAlarmSettingList(data)
     }
 }
