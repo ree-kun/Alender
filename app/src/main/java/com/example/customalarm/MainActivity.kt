@@ -1,6 +1,7 @@
 package com.example.customalarm
 
 import android.content.Intent
+import android.os.AsyncTask
 import android.os.Bundle
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -8,22 +9,22 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.customalarm.common.EditMode
-import com.example.customalarm.entity.AlarmSetting
+import com.example.customalarm.data.db.AlarmSettingDao
+import com.example.customalarm.data.db.AppDatabase
+import com.example.customalarm.data.entity.AlarmSettingEntity
 import com.example.customalarm.listcomponent.ListAdapter
-import com.example.customalarm.util.DatabaseHelper
-import com.example.customalarm.util.DatabaseHelper.Companion.TABLE_NAME
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var helper: DatabaseHelper
+    private lateinit var alarmSettingDao: AlarmSettingDao
     private lateinit var alarmSettingList: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        helper = DatabaseHelper.getInstance(this)
+        alarmSettingDao = AppDatabase.getDatabase(applicationContext).alarmSettingDao()
         alarmSettingList = generateAlarmSettingList()
         updateAlarmSettingList()
 
@@ -55,32 +56,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateAlarmSettingList() {
-        val dataAlarms = loadAlarms()
-        this.setAlarmSettingList(dataAlarms)
+        AsyncLoad(alarmSettingDao, alarmSettingList).execute()
     }
 
-    private fun setAlarmSettingList(data: ArrayList<AlarmSetting>) {
-        alarmSettingList.adapter = ListAdapter(data)
-    }
+    private class AsyncLoad(private val alarmSettingDao: AlarmSettingDao, private val alarmSettingList: RecyclerView) : AsyncTask<Void, Void, List<AlarmSettingEntity>>() {
 
-    private fun loadAlarms(): ArrayList<AlarmSetting> {
-        val data = ArrayList<AlarmSetting>()
-
-        helper.readableDatabase.use { db ->
-            val cols = arrayOf("id", "title")
-            val cs = db.query(
-                TABLE_NAME, cols, null, null,
-                null, null, "id", null
-            )
-            var eol = cs.moveToFirst()
-            while (eol) {
-                val item = AlarmSetting()
-                item.setId(cs.getInt(0))
-                item.setTitle(cs.getString(1))
-                data.add(item)
-                eol = cs.moveToNext()
-            }
+        override fun doInBackground(vararg voids: Void): List<AlarmSettingEntity> {
+            return alarmSettingDao.selectAll()
         }
-        return data
+
+        override fun onPostExecute(dataAlarms: List<AlarmSettingEntity>) {
+            alarmSettingList.adapter = ListAdapter(dataAlarms)
+        }
     }
+
 }

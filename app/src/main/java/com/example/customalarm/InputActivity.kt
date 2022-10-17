@@ -1,7 +1,7 @@
 package com.example.customalarm
 
-import android.content.ContentValues
 import android.content.Intent
+import android.os.AsyncTask
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -10,12 +10,13 @@ import android.widget.NumberPicker
 import androidx.appcompat.app.AppCompatActivity
 import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
 import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
-import com.example.customalarm.util.DatabaseHelper
-import com.example.customalarm.util.DatabaseHelper.Companion.TABLE_NAME
+import com.example.customalarm.data.db.AlarmSettingDao
+import com.example.customalarm.data.db.AppDatabase
+import com.example.customalarm.data.entity.AlarmSettingEntity
 
 class InputActivity : AppCompatActivity() {
 
-    private lateinit var helper: DatabaseHelper
+    private lateinit var alarmSettingDao: AlarmSettingDao
 
     private lateinit var hourPicker: NumberPicker
     private lateinit var minutePicker: NumberPicker
@@ -26,7 +27,7 @@ class InputActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_input)
 
-        helper = DatabaseHelper.getInstance(this)
+        alarmSettingDao = AppDatabase.getDatabase(applicationContext).alarmSettingDao()
 
         settingTimeDrum()
         settingOperationButton()
@@ -70,15 +71,7 @@ class InputActivity : AppCompatActivity() {
             val minute = minutePicker.value
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
-            try {
-                helper.writableDatabase.use { db ->
-                    val cv = ContentValues()
-                    cv.put("title", editAlarmTitle)
-                    db.insert(TABLE_NAME, null, cv).toInt()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            AsyncSave(alarmSettingDao, AlarmSettingEntity(0, editAlarmTitle)).execute()
             setResult(RESULT_OK, Intent())
             finish()
         }
@@ -86,23 +79,27 @@ class InputActivity : AppCompatActivity() {
 
     private fun setupEditMode() {
         val alarmId = intent.getIntExtra("alarmId", -1)
-        Log.d("debug", "alarmId: $alarmId")
-        try {
-            helper.readableDatabase.use { db ->
-                val cols = arrayOf("id", "title")
-                val params = arrayOf(alarmId.toString())
-                val cs = db.query(
-                    TABLE_NAME, cols, "id = ?", params,
-                    null, null, "id", null
-                )
-                cs.moveToFirst()
 
-                val title = cs.getString(1)
-                Log.d("debug", "title: $title")
-                findViewById<EditText>(R.id.editAlarmTitle).setText(cs.getString(1))
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        AsyncLoad(alarmSettingDao, alarmId, findViewById(R.id.editAlarmTitle)).execute()
+    }
+
+    private class AsyncLoad(private val alarmSettingDao: AlarmSettingDao, private val alarmId: Int, private val editAlarmTitle: EditText) : AsyncTask<Void, Void, AlarmSettingEntity>() {
+
+        override fun doInBackground(vararg voids: Void): AlarmSettingEntity {
+            return alarmSettingDao.selectById(alarmId)
+        }
+
+        override fun onPostExecute(alarmSettingEntity: AlarmSettingEntity) {
+            editAlarmTitle.setText(alarmSettingEntity.title)
+        }
+    }
+
+    private class AsyncSave(private val alarmSettingDao: AlarmSettingDao, private val entity: AlarmSettingEntity) : AsyncTask<Void, Void, Void>() {
+
+        override fun doInBackground(vararg voids: Void): Void? {
+            Log.d("debug", "background")
+            alarmSettingDao.saveAlarmSetting(entity)
+            return null
         }
     }
 
