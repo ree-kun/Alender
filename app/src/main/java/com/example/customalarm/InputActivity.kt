@@ -1,9 +1,7 @@
 package com.example.customalarm
 
 import android.content.Intent
-import android.os.AsyncTask
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.NumberPicker
@@ -13,8 +11,14 @@ import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
 import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
 import com.example.customalarm.data.entity.AlarmSettingEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class InputActivity : AppCompatActivity() {
+
+    private val scope = CoroutineScope(Dispatchers.Default)
 
     private lateinit var alarmSettingDao: AlarmSettingDao
 
@@ -71,7 +75,9 @@ class InputActivity : AppCompatActivity() {
             val minute = minutePicker.value
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
-            AsyncSave(alarmSettingDao, AlarmSettingEntity(0, editAlarmTitle)).execute()
+            scope.launch {
+                saveAlarmSetting(AlarmSettingEntity(0, editAlarmTitle))
+            }
             setResult(RESULT_OK, Intent())
             finish()
         }
@@ -80,26 +86,28 @@ class InputActivity : AppCompatActivity() {
     private fun setupEditMode() {
         val alarmId = intent.getIntExtra("alarmId", -1)
 
-        AsyncLoad(alarmSettingDao, alarmId, findViewById(R.id.editAlarmTitle)).execute()
-    }
-
-    private class AsyncLoad(private val alarmSettingDao: AlarmSettingDao, private val alarmId: Int, private val editAlarmTitle: EditText) : AsyncTask<Void, Void, AlarmSettingEntity>() {
-
-        override fun doInBackground(vararg voids: Void): AlarmSettingEntity {
-            return alarmSettingDao.selectById(alarmId)
-        }
-
-        override fun onPostExecute(alarmSettingEntity: AlarmSettingEntity) {
-            editAlarmTitle.setText(alarmSettingEntity.title)
+        scope.launch {
+            showAlarmSetting(alarmId)
         }
     }
 
-    private class AsyncSave(private val alarmSettingDao: AlarmSettingDao, private val entity: AlarmSettingEntity) : AsyncTask<Void, Void, Void>() {
+    private suspend fun showAlarmSetting(alarmId: Int) {
+        try {
+            val alarmSettingEntity = alarmSettingDao.selectById(alarmId)
 
-        override fun doInBackground(vararg voids: Void): Void? {
-            Log.d("debug", "background")
+            withContext(Dispatchers.Main) {
+                findViewById<EditText>(R.id.editAlarmTitle).setText(alarmSettingEntity.title)
+            }
+        } catch (e: Exception) {
+            // Do nothing
+        }
+    }
+
+    private suspend fun saveAlarmSetting(entity: AlarmSettingEntity) {
+        try {
             alarmSettingDao.saveAlarmSetting(entity)
-            return null
+        } catch (e: Exception) {
+            // Do nothing
         }
     }
 

@@ -14,12 +14,12 @@ interface AlarmSettingDao {
     }
 
     @Query("SELECT * FROM $TABLE_NAME")
-    fun selectAll(): List<AlarmSettingEntity>
+    suspend fun selectAll(): List<AlarmSettingEntity>
 
     @Query("SELECT * FROM $TABLE_NAME WHERE id = (:id)")
-    fun selectById(id: Int): AlarmSettingEntity
+    suspend fun selectById(id: Int): AlarmSettingEntity
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun saveAlarmSetting(entity: AlarmSettingEntity)
+    suspend fun saveAlarmSetting(entity: AlarmSettingEntity)
 
 }
