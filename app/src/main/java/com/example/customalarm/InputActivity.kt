@@ -36,6 +36,7 @@ class InputActivity : AppCompatActivity() {
         settingTimeDrum()
         settingOperationButton()
 
+        // editModeがなくても、alarmIdの有無で判定しても同じ。
         when (intent.getIntExtra("editMode", -1)) {
             CREATE_MODE -> { /** do nothing */ }
             EDIT_MODE -> { setupEditMode() }
@@ -76,7 +77,12 @@ class InputActivity : AppCompatActivity() {
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
             scope.launch {
-                saveAlarmSetting(AlarmSettingEntity(0, editAlarmTitle))
+                when (intent.getIntExtra("editMode", -1)) {
+                    CREATE_MODE -> { saveAlarmSetting(AlarmSettingEntity(0, editAlarmTitle)) }
+                    EDIT_MODE -> { saveAlarmSetting(AlarmSettingEntity(
+                        intent.getIntExtra("alarmId", -1), editAlarmTitle)) }
+                    else -> { /** do nothing */ }
+                }
             }
             setResult(RESULT_OK, Intent())
             finish()
