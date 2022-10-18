@@ -11,6 +11,7 @@ import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
 import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
 import com.example.customalarm.data.entity.AlarmSettingEntity
+import com.example.customalarm.util.Util
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,14 +78,17 @@ class InputActivity : AppCompatActivity() {
             val time = "$hour:$minute"
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
-            scope.launch {
-                when (intent.getIntExtra("editMode", -1)) {
-                    CREATE_MODE -> { saveAlarmSetting(AlarmSettingEntity(0, editAlarmTitle, time)) }
-                    EDIT_MODE -> { saveAlarmSetting(AlarmSettingEntity(
-                        intent.getIntExtra("alarmId", -1), editAlarmTitle, time)) }
-                    else -> { /** do nothing */ }
-                }
+            var alarmId = -1
+            when (intent.getIntExtra("editMode", -1)) {
+                CREATE_MODE -> { alarmId = 0 }
+                EDIT_MODE -> { alarmId = intent.getIntExtra("alarmId", -1) }
+                else -> { /** do nothing */ }
             }
+            val entity = AlarmSettingEntity(alarmId, editAlarmTitle, time)
+            scope.launch {
+                saveAlarmSetting(entity)
+            }
+            Util.scheduleAlarm(applicationContext, entity)
             setResult(RESULT_OK, Intent())
             finish()
         }
