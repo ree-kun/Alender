@@ -13,4 +13,7 @@ data class AlarmSettingEntity (
     @ColumnInfo(name = "title")
     val title: String,
 
+    @ColumnInfo(name = "time")
+    val time: String,
+
 )

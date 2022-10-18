@@ -19,7 +19,6 @@ class ListAdapter(private val data: List<AlarmSettingEntity>) :
             .inflate(R.layout.alarm_setting, parent, false)
         val holder = ListViewHolder(v)
         holder.itemView.setOnClickListener {
-            // TODO 編集処理への遷移
             val context = parent.context
             val position: Int = holder.adapterPosition
             val i = Intent(context, InputActivity::class.java)
@@ -31,7 +30,9 @@ class ListAdapter(private val data: List<AlarmSettingEntity>) :
     }
 
     override fun onBindViewHolder(holder: ListViewHolder, position: Int) {
-        holder.title.text = data[position].title
+        val alarmSetting = data[position]
+        holder.title.text = alarmSetting.title
+        holder.time.text = alarmSetting.time
     }
 
     override fun getItemCount(): Int {

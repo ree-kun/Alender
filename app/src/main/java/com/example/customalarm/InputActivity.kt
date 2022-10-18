@@ -73,14 +73,15 @@ class InputActivity : AppCompatActivity() {
 
         addButton.setOnClickListener {
             val hour = hourPicker.value
-            val minute = minutePicker.value
+            val minute = minutePicker.value * 15
+            val time = "$hour:$minute"
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
             scope.launch {
                 when (intent.getIntExtra("editMode", -1)) {
-                    CREATE_MODE -> { saveAlarmSetting(AlarmSettingEntity(0, editAlarmTitle)) }
+                    CREATE_MODE -> { saveAlarmSetting(AlarmSettingEntity(0, editAlarmTitle, time)) }
                     EDIT_MODE -> { saveAlarmSetting(AlarmSettingEntity(
-                        intent.getIntExtra("alarmId", -1), editAlarmTitle)) }
+                        intent.getIntExtra("alarmId", -1), editAlarmTitle, time)) }
                     else -> { /** do nothing */ }
                 }
             }
