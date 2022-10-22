@@ -24,7 +24,7 @@ object Util {
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java)
-        intent.data = Uri.parse(item.toString())
+        intent.data = Uri.parse(item.id.toString())
 
         var pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) pendingFlags =

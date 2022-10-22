@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.NumberPicker
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
 import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
@@ -12,6 +13,11 @@ import com.example.customalarm.common.Setting
 import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
 import com.example.customalarm.data.entity.AlarmSettingEntity
+import com.example.customalarm.dialog.ListSelectDialogFragment
+import com.example.customalarm.dialog.MultiChoiceDialogFragment
+import com.example.customalarm.dialog.list.Day
+import com.example.customalarm.dialog.list.RepeatUnit
+import com.example.customalarm.dialog.list.RepeatUnit.*
 import com.example.customalarm.util.Util
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +32,7 @@ class InputActivity : AppCompatActivity() {
 
     private lateinit var hourPicker: NumberPicker
     private lateinit var minutePicker: NumberPicker
+    private lateinit var alarmRepeat: TextView
     private lateinit var cancelButton: Button
     private lateinit var addButton: Button
 
@@ -35,13 +42,17 @@ class InputActivity : AppCompatActivity() {
 
         alarmSettingDao = AppDatabase.getDatabase(applicationContext).alarmSettingDao()
 
+        val editMode = intent.getIntExtra("editMode", -1)
+        val alarmId = intent.getIntExtra("alarmId", 0)
+
         settingTimeDrum()
-        settingOperationButton()
+        settingInputs()
+        settingOperationButton(alarmId)
 
         // editModeがなくても、alarmIdの有無で判定しても同じ。
-        when (intent.getIntExtra("editMode", -1)) {
+        when (editMode) {
             CREATE_MODE -> { /** do nothing */ }
-            EDIT_MODE -> { setupEditMode() }
+            EDIT_MODE -> { setupEditMode(alarmId) }
             else -> { /** do nothing */ }
         }
     }
@@ -66,7 +77,31 @@ class InputActivity : AppCompatActivity() {
         minutePicker.displayedValues = minutes
     }
 
-    private fun settingOperationButton() {
+    private fun settingInputs() {
+        alarmRepeat = findViewById(R.id.alarmRepeat)
+
+        alarmRepeat.setOnClickListener {
+            ListSelectDialogFragment("繰り返し設定", RepeatUnit.values())
+                .onSelected { unit ->
+                    when (unit) {
+                        NO_REPEAT -> { /* TODO */ }
+                        DAILY -> { /* TODO */ }
+                        WEEKLY -> {
+                            // 曜日の選択肢と、◯週ごとに繰り返す、の入力があれば、毎週でも隔週でも指定可能。
+                            // 従って、フォームは１種類で良い。
+                            MultiChoiceDialogFragment("曜日指定", Day.values()) // TODO 何週ごとの繰り返しか入力欄を作る
+                                .onSubmit { /* TODO */ }
+                                .show(supportFragmentManager, "曜日指定")
+                        }
+                        MONTHLY -> { /* TODO */ }
+                        YEARLY -> { /* TODO */ }
+                    }
+                }
+                .show(supportFragmentManager, "繰り返し設定")
+        }
+    }
+
+    private fun settingOperationButton(alarmId: Int) {
         cancelButton = findViewById(R.id.cancelButton)
         addButton = findViewById(R.id.addButton)
 
@@ -81,12 +116,6 @@ class InputActivity : AppCompatActivity() {
             val time = "$hour:$minute"
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
-            var alarmId = -1
-            when (intent.getIntExtra("editMode", -1)) {
-                CREATE_MODE -> { alarmId = 0 }
-                EDIT_MODE -> { alarmId = intent.getIntExtra("alarmId", -1) }
-                else -> { /** do nothing */ }
-            }
             val entity = AlarmSettingEntity(alarmId, editAlarmTitle, time)
             scope.launch {
                 saveAlarmSetting(entity)
@@ -97,9 +126,7 @@ class InputActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupEditMode() {
-        val alarmId = intent.getIntExtra("alarmId", -1)
-
+    private fun setupEditMode(alarmId: Int) {
         scope.launch {
             showAlarmSetting(alarmId)
         }

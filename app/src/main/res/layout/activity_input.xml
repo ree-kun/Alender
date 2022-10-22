@@ -57,13 +57,12 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/timePicker" />
 
-        <EditText
-            android:id="@+id/editAlarmRepeat"
+        <TextView
+            android:id="@+id/alarmRepeat"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="1"
-            android:hint="繰り返し"
-            android:text="毎週 月 - 金"
+            android:text="繰り返しなし"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/timePicker" />
