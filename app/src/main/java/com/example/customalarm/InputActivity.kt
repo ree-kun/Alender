@@ -8,6 +8,7 @@ import android.widget.NumberPicker
 import androidx.appcompat.app.AppCompatActivity
 import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
 import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
+import com.example.customalarm.common.Setting
 import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
 import com.example.customalarm.data.entity.AlarmSettingEntity
@@ -55,7 +56,9 @@ class InputActivity : AppCompatActivity() {
         hourPicker.maxValue = 23
 
         // ドラムロール表示用の配列作成
-        val minutes = arrayOf("0", "15", "30", "45")
+        val minutes = Array(60 / Setting.TIME_PITCH) {
+            (it * Setting.TIME_PITCH).toString().padStart(2, '0')
+        }
         // 配列のインデックス最小、最大を指定
         minutePicker.minValue = 0
         minutePicker.maxValue = minutes.size - 1
@@ -74,7 +77,7 @@ class InputActivity : AppCompatActivity() {
 
         addButton.setOnClickListener {
             val hour = hourPicker.value
-            val minute = minutePicker.value * 15
+            val minute = minutePicker.value * Setting.TIME_PITCH
             val time = "$hour:$minute"
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
