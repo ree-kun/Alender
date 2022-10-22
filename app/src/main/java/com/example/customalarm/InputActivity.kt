@@ -107,6 +107,8 @@ class InputActivity : AppCompatActivity() {
             val alarmSettingEntity = alarmSettingDao.selectById(alarmId)
 
             withContext(Dispatchers.Main) {
+                hourPicker.value = alarmSettingEntity.time.split(":")[0].toInt()
+                minutePicker.value = alarmSettingEntity.time.split(":")[1].toInt()
                 findViewById<EditText>(R.id.editAlarmTitle).setText(alarmSettingEntity.title)
             }
         } catch (e: Exception) {
