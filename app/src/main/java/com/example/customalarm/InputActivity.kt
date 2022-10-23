@@ -7,6 +7,8 @@ import android.widget.EditText
 import android.widget.NumberPicker
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.customalarm.common.Constant.Companion.MAX_END_OF_MONTH
+import com.example.customalarm.common.Constant.Companion.MIN_END_OF_MONTH
 import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
 import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
 import com.example.customalarm.common.Setting
@@ -14,7 +16,11 @@ import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
 import com.example.customalarm.data.entity.AlarmSettingEntity
 import com.example.customalarm.dialog.ListSelectDialogFragment
+import com.example.customalarm.dialog.MultiChoiceDialogFragment
+import com.example.customalarm.dialog.SingleChoiceDialogFragment
 import com.example.customalarm.dialog.WeeklyRepeatDialogFragment
+import com.example.customalarm.dialog.list.EndOfMonth
+import com.example.customalarm.dialog.list.ListOption
 import com.example.customalarm.dialog.list.RepeatUnit
 import com.example.customalarm.dialog.list.RepeatUnit.*
 import com.example.customalarm.util.Util
@@ -92,7 +98,28 @@ class InputActivity : AppCompatActivity() {
                                 .onSubmit { /* TODO */ }
                                 .show(supportFragmentManager, "曜日指定")
                         }
-                        MONTHLY -> { /* TODO */ }
+                        MONTHLY -> {
+                            MultiChoiceDialogFragment("日にち指定", Array(31) {
+                                object : ListOption {
+                                    val date = it + 1
+                                    override val text: String
+                                        get() = "${date}日"
+                                }
+                            })
+                                .onSubmit { list ->
+                                    val firstAfter29th = list.find { it.date > MIN_END_OF_MONTH }
+                                    if (firstAfter29th != null) {
+                                        val buff = "${firstAfter29th.text}${if (firstAfter29th.date == MAX_END_OF_MONTH) "" else "以降"}"
+                                        val title = "月末${buff}がない場合の設定"
+                                        SingleChoiceDialogFragment(title, EndOfMonth.values())
+                                            .onSubmit { /* TODO */ }
+                                            .show(supportFragmentManager, title)
+                                    } else {
+                                        /* TODO */
+                                    }
+                                }
+                                .show(supportFragmentManager, "日にち指定")
+                        }
                         YEARLY -> { /* TODO */ }
                     }
                 }
