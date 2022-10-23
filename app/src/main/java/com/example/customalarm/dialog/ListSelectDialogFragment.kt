@@ -5,6 +5,8 @@ import android.app.Dialog
 import android.os.Bundle
 import com.example.customalarm.dialog.list.ListOption
 
+// TODO コンストラクタで値を注入するのを辞める
+//  https://zenn.dev/m_coder/articles/article-zenn-custom-dialog-by-dialogfragment
 class ListSelectDialogFragment<T : ListOption>(
     private val title: String,
     private val listOptions: Array<T>

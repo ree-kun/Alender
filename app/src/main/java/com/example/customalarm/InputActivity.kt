@@ -14,8 +14,7 @@ import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
 import com.example.customalarm.data.entity.AlarmSettingEntity
 import com.example.customalarm.dialog.ListSelectDialogFragment
-import com.example.customalarm.dialog.MultiChoiceDialogFragment
-import com.example.customalarm.dialog.list.Day
+import com.example.customalarm.dialog.WeeklyRepeatDialogFragment
 import com.example.customalarm.dialog.list.RepeatUnit
 import com.example.customalarm.dialog.list.RepeatUnit.*
 import com.example.customalarm.util.Util
@@ -89,7 +88,7 @@ class InputActivity : AppCompatActivity() {
                         WEEKLY -> {
                             // 曜日の選択肢と、◯週ごとに繰り返す、の入力があれば、毎週でも隔週でも指定可能。
                             // 従って、フォームは１種類で良い。
-                            MultiChoiceDialogFragment("曜日指定", Day.values()) // TODO 何週ごとの繰り返しか入力欄を作る
+                            WeeklyRepeatDialogFragment("曜日指定")
                                 .onSubmit { /* TODO */ }
                                 .show(supportFragmentManager, "曜日指定")
                         }
