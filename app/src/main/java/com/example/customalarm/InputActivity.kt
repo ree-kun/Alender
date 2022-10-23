@@ -15,10 +15,7 @@ import com.example.customalarm.common.Setting
 import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
 import com.example.customalarm.data.entity.AlarmSettingEntity
-import com.example.customalarm.dialog.ListSelectDialogFragment
-import com.example.customalarm.dialog.MultiChoiceDialogFragment
-import com.example.customalarm.dialog.SingleChoiceDialogFragment
-import com.example.customalarm.dialog.WeeklyRepeatDialogFragment
+import com.example.customalarm.dialog.*
 import com.example.customalarm.dialog.list.EndOfMonth
 import com.example.customalarm.dialog.list.ListOption
 import com.example.customalarm.dialog.list.RepeatUnit
@@ -90,35 +87,59 @@ class InputActivity : AppCompatActivity() {
                 .onSelected { unit ->
                     when (unit) {
                         NO_REPEAT -> { /* TODO */ }
-                        DAILY -> { /* TODO */ }
+                        DAILY -> {
+                            DailyRepeatDialogFragment(unit.text)
+                                .onSubmit { /* TODO */ }
+                                .show(supportFragmentManager, unit.text)
+                        }
                         WEEKLY -> {
                             // 曜日の選択肢と、◯週ごとに繰り返す、の入力があれば、毎週でも隔週でも指定可能。
                             // 従って、フォームは１種類で良い。
-                            WeeklyRepeatDialogFragment("曜日指定")
+                            WeeklyRepeatDialogFragment(unit.text)
                                 .onSubmit { /* TODO */ }
-                                .show(supportFragmentManager, "曜日指定")
+                                .show(supportFragmentManager, unit.text)
                         }
                         MONTHLY -> {
-                            MultiChoiceDialogFragment("日にち指定", Array(31) {
-                                object : ListOption {
-                                    val date = it + 1
-                                    override val text: String
-                                        get() = "${date}日"
-                                }
-                            })
-                                .onSubmit { list ->
-                                    val firstAfter29th = list.find { it.date > MIN_END_OF_MONTH }
-                                    if (firstAfter29th != null) {
-                                        val buff = "${firstAfter29th.text}${if (firstAfter29th.date == MAX_END_OF_MONTH) "" else "以降"}"
-                                        val title = "月末${buff}がない場合の設定"
-                                        SingleChoiceDialogFragment(title, EndOfMonth.values())
-                                            .onSubmit { /* TODO */ }
-                                            .show(supportFragmentManager, title)
-                                    } else {
-                                        /* TODO */
+                            SingleChoiceDialogFragment(unit.text, arrayOf("日にちから設定", "週,曜日から設定")
+                                .mapIndexed { i, it ->
+                                    object : ListOption {
+                                        val id = i
+                                        override val text: String
+                                            get() = it
                                     }
                                 }
-                                .show(supportFragmentManager, "日にち指定")
+                                .toTypedArray()
+                            )
+                                .onSubmit { option ->
+                                    when (option.id) {
+                                        // 日にちから設定
+                                        0 -> {
+                                            MultiChoiceDialogFragment(option.text, Array(31) {
+                                                object : ListOption {
+                                                    val date = it + 1
+                                                    override val text: String
+                                                        get() = "${date}日"
+                                                }
+                                            })
+                                                .onSubmit { list ->
+                                                    val firstAfter29th = list.find { it.date > MIN_END_OF_MONTH }
+                                                    if (firstAfter29th != null) {
+                                                        val buff = "${firstAfter29th.text}${if (firstAfter29th.date == MAX_END_OF_MONTH) "" else "以降"}"
+                                                        val title = "月末${buff}がない場合の設定"
+                                                        SingleChoiceDialogFragment(title, EndOfMonth.values())
+                                                            .onSubmit { /* TODO */ }
+                                                            .show(supportFragmentManager, title)
+                                                    } else {
+                                                        /* TODO */
+                                                    }
+                                                }
+                                                .show(supportFragmentManager, option.text)
+                                        }
+                                        // 週,曜日から設定
+                                        1 -> { /* TODO */ }
+                                    }
+                                }
+                                .show(supportFragmentManager, unit.text)
                         }
                         YEARLY -> { /* TODO */ }
                     }

@@ -10,12 +10,11 @@ class SingleChoiceDialogFragment<T : ListOption>(
     private val listOptions: Array<T>
 ) : AbstractDialogFragment() {
 
-    private lateinit var lister: InputDialogLister<List<T>>
+    private lateinit var lister: InputDialogLister<T>
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         // TODO 初期値を登録済みの値に変更する（未登録の場合は全てfalseでOK）
-        var checkedItem = -1
-        val selectedItems: MutableList<Int> = mutableListOf()
+        var checkedItem = 0
 
         val builder = AlertDialog.Builder(activity)
         builder.setTitle(title)
@@ -25,14 +24,14 @@ class SingleChoiceDialogFragment<T : ListOption>(
                 checkedItem = i
             }
             .setPositiveButton("OK") { _, _ ->
-                lister.onDialogSelect(selectedItems.map { listOptions[it] })
+                lister.onDialogSelect(listOptions[checkedItem])
             }
             .setNegativeButton("Cancel") { _, _ ->
             }
         return builder.create()
     }
 
-    fun onSubmit(lister: InputDialogLister<List<T>>): SingleChoiceDialogFragment<T> {
+    fun onSubmit(lister: InputDialogLister<T>): SingleChoiceDialogFragment<T> {
         this.lister = lister
         return this
     }
