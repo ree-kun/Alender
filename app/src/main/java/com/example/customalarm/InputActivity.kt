@@ -114,13 +114,21 @@ class InputActivity : AppCompatActivity() {
                                     when (option.id) {
                                         // 日にちから設定
                                         0 -> {
-                                            MultiChoiceDialogFragment(option.text, Array(31) {
+                                            MultiChoiceDialogFragment(option.text, ((1..31) + (-3 .. -1)).map {
                                                 object : ListOption {
-                                                    val date = it + 1
+                                                    val date = it
                                                     override val text: String
-                                                        get() = "${date}日"
+                                                        get() = if (it > 0) "${date}日"
+                                                        else when (it) {
+                                                            -1 -> "最終日"
+                                                            -2 -> "最終日の前日"
+                                                            -3 -> "最終日の前々日"
+                                                            else -> ""
+                                                        }
                                                 }
-                                            })
+                                            }
+                                                .toTypedArray()
+                                            )
                                                 .onSubmit { list ->
                                                     val firstAfter29th = list.find { it.date > MIN_END_OF_MONTH }
                                                     if (firstAfter29th != null) {

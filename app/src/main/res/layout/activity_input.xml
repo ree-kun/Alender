@@ -6,6 +6,8 @@
     android:layout_height="match_parent"
     tools:context=".InputActivity">
 
+    <!-- TODO 開始日の入力と、繰り返し設定の確認のため、カレンダーを表示する -->
+
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
