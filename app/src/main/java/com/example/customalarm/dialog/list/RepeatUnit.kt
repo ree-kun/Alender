@@ -8,6 +8,6 @@ enum class RepeatUnit(
     DAILY("日ごとに設定"),
     WEEKLY("週,曜日ごとに設定"),
     MONTHLY("月ごとに設定"),
-    YEARLY("年ごとに設定"),
+//    YEARLY("年ごとに設定"),
 
 }

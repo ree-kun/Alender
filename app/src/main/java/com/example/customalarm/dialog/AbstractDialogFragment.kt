@@ -1,17 +1,27 @@
 package com.example.customalarm.dialog
 
+import android.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.FragmentManager
 
-abstract class AbstractDialogFragment : DialogFragment() {
+abstract class AbstractDialogFragment<T>(
+    private val title: String
+) : DialogFragment() {
 
-//    override fun onAttach(context: Context) {
-//        super.onAttach(context)
-//        try {
-//            println("lister $lister")
-//            lister = context as InputDialogLister
-//        } catch (e: ClassCastException) {
-//            throw ClassCastException("$context must implement InputDialogLister")
-//        }
-//    }
+    protected lateinit var lister: InputDialogLister<T>
+
+    fun builder(): AlertDialog.Builder {
+        val builder = AlertDialog.Builder(activity)
+        return builder.setTitle(title)
+    }
+
+    fun execute(fragmentManager: FragmentManager) {
+        this.show(fragmentManager, title)
+    }
+
+    fun onSubmit(lister: InputDialogLister<T>): AbstractDialogFragment<T> {
+        this.lister = lister
+        return this
+    }
 
 }

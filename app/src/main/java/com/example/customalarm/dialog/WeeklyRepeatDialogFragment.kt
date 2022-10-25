@@ -1,6 +1,5 @@
 package com.example.customalarm.dialog
 
-import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,10 +10,8 @@ import com.example.customalarm.R
 import com.example.customalarm.dialog.list.Day
 
 class WeeklyRepeatDialogFragment(
-    private val title: String
-) : AbstractDialogFragment() {
-
-    private lateinit var lister: InputDialogLister<List<Day>>
+    title: String
+) : AbstractDialogFragment<List<Day>>(title) {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val weekRepeatLayout = LayoutInflater.from(activity).inflate(R.layout.dialog_repeat_week, null)
@@ -42,8 +39,7 @@ class WeeklyRepeatDialogFragment(
             daySelect.addView(checkBox)
         }
 
-        val builder = AlertDialog.Builder(activity)
-        builder.setTitle(title)
+        return builder()
             .setView(weekRepeatLayout)
             .setPositiveButton("OK") { _, _ ->
                 lister.onDialogSelect(
@@ -55,12 +51,7 @@ class WeeklyRepeatDialogFragment(
             }
             .setNegativeButton("Cancel") { _, _ ->
             }
-        return builder.create()
-    }
-
-    fun onSubmit(lister: InputDialogLister<List<Day>>): WeeklyRepeatDialogFragment {
-        this.lister = lister
-        return this
+            .create()
     }
 
 }

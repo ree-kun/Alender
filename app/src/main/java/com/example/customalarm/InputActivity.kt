@@ -84,20 +84,20 @@ class InputActivity : AppCompatActivity() {
 
         alarmRepeat.setOnClickListener {
             ListSelectDialogFragment("繰り返し設定", RepeatUnit.values())
-                .onSelected { unit ->
+                .onSubmit { unit ->
                     when (unit) {
                         NO_REPEAT -> { /* TODO */ }
                         DAILY -> {
                             DailyRepeatDialogFragment(unit.text)
                                 .onSubmit { /* TODO */ }
-                                .show(supportFragmentManager, unit.text)
+                                .execute(supportFragmentManager)
                         }
                         WEEKLY -> {
                             // 曜日の選択肢と、◯週ごとに繰り返す、の入力があれば、毎週でも隔週でも指定可能。
                             // 従って、フォームは１種類で良い。
                             WeeklyRepeatDialogFragment(unit.text)
                                 .onSubmit { /* TODO */ }
-                                .show(supportFragmentManager, unit.text)
+                                .execute(supportFragmentManager)
                         }
                         MONTHLY -> {
                             SingleChoiceDialogFragment(unit.text, arrayOf("日にちから設定", "週,曜日から設定")
@@ -114,7 +114,7 @@ class InputActivity : AppCompatActivity() {
                                     when (option.id) {
                                         // 日にちから設定
                                         0 -> {
-                                            MultiChoiceDialogFragment(option.text, ((1..31) + (-3 .. -1)).map {
+                                            MultiChoiceDialogFragment(option.text, ((1..31) + (-3..-1)).map {
                                                 object : ListOption {
                                                     val date = it
                                                     override val text: String
@@ -136,23 +136,27 @@ class InputActivity : AppCompatActivity() {
                                                         val title = "月末${buff}がない場合の設定"
                                                         SingleChoiceDialogFragment(title, EndOfMonth.values())
                                                             .onSubmit { /* TODO */ }
-                                                            .show(supportFragmentManager, title)
+                                                            .execute(supportFragmentManager)
                                                     } else {
                                                         /* TODO */
                                                     }
                                                 }
-                                                .show(supportFragmentManager, option.text)
+                                                .execute(supportFragmentManager)
                                         }
                                         // 週,曜日から設定
-                                        1 -> { /* TODO */ }
+                                        1 -> {
+                                            MonthlyWeekRepeatDialogFragment(unit.text)
+                                                .onSubmit { /* TODO */ }
+                                                .execute(supportFragmentManager)
+                                        }
                                     }
                                 }
-                                .show(supportFragmentManager, unit.text)
+                                .execute(supportFragmentManager)
                         }
-                        YEARLY -> { /* TODO */ }
+//                        YEARLY -> { /* TODO */ }
                     }
                 }
-                .show(supportFragmentManager, "繰り返し設定")
+                .execute(supportFragmentManager)
         }
     }
 
