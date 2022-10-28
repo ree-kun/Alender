@@ -36,7 +36,7 @@ class InputActivity : AppCompatActivity() {
     private lateinit var minutePicker: NumberPicker
     private lateinit var alarmRepeat: TextView
     private lateinit var cancelButton: Button
-    private lateinit var addButton: Button
+    private lateinit var saveButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -162,14 +162,14 @@ class InputActivity : AppCompatActivity() {
 
     private fun settingOperationButton(alarmId: Int) {
         cancelButton = findViewById(R.id.cancelButton)
-        addButton = findViewById(R.id.addButton)
+        saveButton = findViewById(R.id.saveButton)
 
         cancelButton.setOnClickListener {
             setResult(RESULT_CANCELED)
             finish()
         }
 
-        addButton.setOnClickListener {
+        saveButton.setOnClickListener {
             val hour = hourPicker.value
             val minute = minutePicker.value * Setting.TIME_PITCH
             val time = "$hour:$minute"
@@ -212,5 +212,4 @@ class InputActivity : AppCompatActivity() {
             // Do nothing
         }
     }
-
 }

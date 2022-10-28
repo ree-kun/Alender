@@ -15,13 +15,13 @@ abstract class AbstractDialogFragment<T>(
         return builder.setTitle(title)
     }
 
-    fun execute(fragmentManager: FragmentManager) {
-        this.show(fragmentManager, title)
-    }
-
     fun onSubmit(lister: InputDialogLister<T>): AbstractDialogFragment<T> {
         this.lister = lister
         return this
+    }
+
+    fun execute(fragmentManager: FragmentManager) {
+        this.show(fragmentManager, title)
     }
 
 }
