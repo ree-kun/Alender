@@ -8,7 +8,8 @@ class Setting {
     companion object {
         const val LANGUAGE = "日本語"
         const val TIME_PITCH = 1
-        val DAY_OF_THE_WEEK = Day.Sun
+        // TODO com.example.customalarm.dialog.list.Day と統合する
+        const val FIRST_DAY_OF_WEEK = 2 // 月曜日
     }
 
 }

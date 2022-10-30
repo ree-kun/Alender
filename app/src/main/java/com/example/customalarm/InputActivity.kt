@@ -7,6 +7,8 @@ import android.widget.EditText
 import android.widget.NumberPicker
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.customalarm.calendar.CalendarDecorator
+import com.example.customalarm.calendar.CalendarListener
 import com.example.customalarm.common.Constant.Companion.MAX_END_OF_MONTH
 import com.example.customalarm.common.Constant.Companion.MIN_END_OF_MONTH
 import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
@@ -21,6 +23,8 @@ import com.example.customalarm.dialog.list.ListOption
 import com.example.customalarm.dialog.list.RepeatUnit
 import com.example.customalarm.dialog.list.RepeatUnit.*
 import com.example.customalarm.util.Util
+import com.prolificinteractive.materialcalendarview.CalendarDay
+import com.prolificinteractive.materialcalendarview.MaterialCalendarView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -35,6 +39,7 @@ class InputActivity : AppCompatActivity() {
     private lateinit var hourPicker: NumberPicker
     private lateinit var minutePicker: NumberPicker
     private lateinit var alarmRepeat: TextView
+    private lateinit var calendar: MaterialCalendarView
     private lateinit var cancelButton: Button
     private lateinit var saveButton: Button
 
@@ -50,6 +55,7 @@ class InputActivity : AppCompatActivity() {
         settingTimeDrum()
         settingInputs()
         settingOperationButton(alarmId)
+        settingCalendar()
 
         // editModeがなくても、alarmIdの有無で判定しても同じ。
         when (editMode) {
@@ -57,6 +63,18 @@ class InputActivity : AppCompatActivity() {
             EDIT_MODE -> { setupEditMode(alarmId) }
             else -> { /** do nothing */ }
         }
+    }
+
+    private fun settingCalendar() {
+        calendar = findViewById(R.id.calendar)
+//        calendar.firstDayOfWeek = FIRST_DAY_OF_WEEK
+        calendar.selectRange(CalendarDay.today(), CalendarDay.today())
+
+        val listener = CalendarListener()
+        calendar.setOnDateLongClickListener(listener)
+        calendar.setOnDateChangedListener(listener)
+        calendar.setOnMonthChangedListener(listener)
+        setCalendarDecoration()
     }
 
     private fun settingTimeDrum() {
@@ -203,6 +221,18 @@ class InputActivity : AppCompatActivity() {
         } catch (e: Exception) {
             // Do nothing
         }
+    }
+
+    private fun setCalendarDecoration() {
+        calendar.removeDecorators()
+        calendar.addDecorator(object : CalendarDecorator(resources) {
+
+            override fun shouldDecorate(day: CalendarDay): Boolean {
+                // TODO 仮実装。偶数の日にデコレートする。
+                return day.day % 2 == 0
+            }
+
+        })
     }
 
     private suspend fun saveAlarmSetting(entity: AlarmSettingEntity) {
