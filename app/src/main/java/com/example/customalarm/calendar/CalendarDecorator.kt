@@ -11,7 +11,7 @@ class CalendarDecorator(
 ) : DayViewDecorator {
 
     override fun shouldDecorate(day: CalendarDay): Boolean {
-        return identifier.isTarget(day)
+        return !day.isBefore(CalendarDay.today()) && identifier.isTarget(day)
     }
 
     override fun decorate(view: DayViewFacade) {

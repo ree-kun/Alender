@@ -37,6 +37,9 @@ class InputActivity : AppCompatActivity() {
 
     private lateinit var alarmSettingDao: AlarmSettingDao
 
+    // TODO 仮実装。偶数の日にデコレートする。
+    private val defaultDecorateTarget = CalendarTargetIdentifier { it.day % 2 == 0 }
+
     private lateinit var hourPicker: NumberPicker
     private lateinit var minutePicker: NumberPicker
     private lateinit var alarmRepeat: TextView
@@ -75,8 +78,7 @@ class InputActivity : AppCompatActivity() {
         calendar.setOnDateLongClickListener(listener)
         calendar.setOnDateChangedListener(listener)
         calendar.setOnMonthChangedListener(listener)
-        // TODO 仮実装。偶数の日にデコレートする。
-        setCalendarDecoration { it.day % 2 == 0 }
+        setCalendarDecoration(defaultDecorateTarget)
     }
 
     private fun settingTimeDrum() {
@@ -106,7 +108,7 @@ class InputActivity : AppCompatActivity() {
             ListSelectDialogFragment("繰り返し設定", RepeatUnit.values())
                 .onSubmit { unit ->
                     when (unit) {
-                        NO_REPEAT -> { setCalendarDecoration { /* TODO 仮実装。奇数の日にデコレートする。 */ it.day % 2 == 1 } }
+                        NO_REPEAT -> { setCalendarDecoration(defaultDecorateTarget) }
                         DAILY -> {
                             DailyRepeatDialogFragment(unit.text)
                                 .onSubmit { /* TODO */ }
