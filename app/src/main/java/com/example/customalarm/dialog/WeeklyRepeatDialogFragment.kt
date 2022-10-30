@@ -11,7 +11,7 @@ import com.example.customalarm.dialog.list.Day
 
 class WeeklyRepeatDialogFragment(
     title: String
-) : AbstractDialogFragment<List<Day>>(title) {
+) : AbstractDialogFragment<Pair<Int, List<Day>>>(title) {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val weekRepeatLayout = LayoutInflater.from(activity).inflate(R.layout.dialog_repeat_week, null)
@@ -43,10 +43,13 @@ class WeeklyRepeatDialogFragment(
             .setView(weekRepeatLayout)
             .setPositiveButton("OK") { _, _ ->
                 lister.onDialogSelect(
-                    Day.values()
-                        .filterIndexed { i, _ ->
-                            (daySelect.getChildAt(i) as CheckBox).isChecked
-                        }
+                    Pair(
+                        weeklyPitch.value + 1,
+                        Day.values()
+                            .filterIndexed { i, _ ->
+                                (daySelect.getChildAt(i) as CheckBox).isChecked
+                            }
+                    )
                 )
             }
             .setNegativeButton("Cancel") { _, _ ->

@@ -54,10 +54,9 @@ class MonthlyWeekRepeatDialogFragment(
                             (weekSelect.getChildAt(i) as CheckBox).isChecked
                         }
                             .map { it.value },
-                        Day.values()
-                            .filterIndexed { i, _ ->
-                                (daySelect.getChildAt(i) as CheckBox).isChecked
-                            }
+                        Day.values().filterIndexed { i, _ ->
+                            (daySelect.getChildAt(i) as CheckBox).isChecked
+                        }
                     )
                 )
             }

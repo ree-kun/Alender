@@ -25,7 +25,7 @@ class DailyRepeatDialogFragment(
         return builder()
             .setView(picker)
             .setPositiveButton("OK") { _, _ ->
-                lister.onDialogSelect(picker.value)
+                lister.onDialogSelect(picker.value + 1)
             }
             .setNegativeButton("Cancel") { _, _ ->
             }
