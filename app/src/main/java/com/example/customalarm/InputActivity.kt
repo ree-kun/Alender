@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.customalarm.calendar.CalendarDecorator
 import com.example.customalarm.calendar.CalendarListener
+import com.example.customalarm.calendar.CalendarTargetIdentifier
 import com.example.customalarm.common.Constant.Companion.MAX_END_OF_MONTH
 import com.example.customalarm.common.Constant.Companion.MIN_END_OF_MONTH
 import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
@@ -74,7 +75,8 @@ class InputActivity : AppCompatActivity() {
         calendar.setOnDateLongClickListener(listener)
         calendar.setOnDateChangedListener(listener)
         calendar.setOnMonthChangedListener(listener)
-        setCalendarDecoration()
+        // TODO 仮実装。偶数の日にデコレートする。
+        setCalendarDecoration { it.day % 2 == 0 }
     }
 
     private fun settingTimeDrum() {
@@ -104,7 +106,7 @@ class InputActivity : AppCompatActivity() {
             ListSelectDialogFragment("繰り返し設定", RepeatUnit.values())
                 .onSubmit { unit ->
                     when (unit) {
-                        NO_REPEAT -> { /* TODO */ }
+                        NO_REPEAT -> { setCalendarDecoration { /* TODO 仮実装。奇数の日にデコレートする。 */ it.day % 2 == 1 } }
                         DAILY -> {
                             DailyRepeatDialogFragment(unit.text)
                                 .onSubmit { /* TODO */ }
@@ -223,16 +225,9 @@ class InputActivity : AppCompatActivity() {
         }
     }
 
-    private fun setCalendarDecoration() {
+    private fun setCalendarDecoration(identifier: CalendarTargetIdentifier) {
         calendar.removeDecorators()
-        calendar.addDecorator(object : CalendarDecorator(resources) {
-
-            override fun shouldDecorate(day: CalendarDay): Boolean {
-                // TODO 仮実装。偶数の日にデコレートする。
-                return day.day % 2 == 0
-            }
-
-        })
+        calendar.addDecorator(CalendarDecorator(resources, identifier))
     }
 
     private suspend fun saveAlarmSetting(entity: AlarmSettingEntity) {
