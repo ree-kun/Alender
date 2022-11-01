@@ -67,7 +67,7 @@ class InputActivity : AppCompatActivity() {
 
         // editModeがなくても、alarmIdの有無で判定しても同じ。
         when (editMode) {
-            CREATE_MODE -> { /** do nothing */ }
+            CREATE_MODE -> { setupCreateMode() }
             EDIT_MODE -> { setupEditMode(alarmId) }
             else -> { /** do nothing */ }
         }
@@ -269,6 +269,12 @@ class InputActivity : AppCompatActivity() {
             setResult(RESULT_OK, Intent())
             finish()
         }
+    }
+
+    private fun setupCreateMode() {
+        val now = Calendar.getInstance()
+        hourPicker.value = now.get(Calendar.HOUR_OF_DAY)
+        minutePicker.value = now.get(Calendar.MINUTE) / Setting.TIME_PITCH
     }
 
     private fun setupEditMode(alarmId: Int) {
