@@ -271,7 +271,7 @@ class InputActivity : AppCompatActivity() {
         saveButton.setOnClickListener {
             val hour = hourPicker.value
             val minute = minutePicker.value * Setting.TIME_PITCH
-            val time = "$hour:$minute"
+            val time = "$hour:${minute.toString().padStart(2, '0')}"
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
             val entity = AlarmSettingEntity(alarmId, editAlarmTitle, time)
