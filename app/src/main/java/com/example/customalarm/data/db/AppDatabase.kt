@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.customalarm.common.Setting.Companion.TIMEZONE_DIFF_IN_MILLIS
 import com.example.customalarm.data.converter.DateConverter
 import com.example.customalarm.data.entity.*
 
@@ -37,25 +38,25 @@ abstract class AppDatabase : RoomDatabase() {
                             super.onCreate(db)
 
                             val sql = "INSERT INTO 'holiday' VALUES " +
-                                    "(1667401200000, '文化の日')," +
-                                    "(1669129200000, '勤労感謝の日')," +
-                                    "(1672498800000, '元日')," +
-                                    "(1672585200000, '休日')," +
-                                    "(1673190000000, '成人の日')," +
-                                    "(1676041200000, '建国記念の日')," +
-                                    "(1677078000000, '天皇誕生日')," +
-                                    "(1679324400000, '春分の日')," +
-                                    "(1682694000000, '昭和の日')," +
-                                    "(1683039600000, '憲法記念日')," +
-                                    "(1683126000000, 'みどりの日')," +
-                                    "(1683212400000, 'こどもの日')," +
-                                    "(1689519600000, '海の日')," +
-                                    "(1691679600000, '山の日')," +
-                                    "(1694962800000, '敬老の日')," +
-                                    "(1695394800000, '秋分の日')," +
-                                    "(1696777200000, 'スポーツの日')," +
-                                    "(1698937200000, '文化の日')," +
-                                    "(1700665200000, '勤労感謝の日')"
+                                    "(1667401200000 + ${TIMEZONE_DIFF_IN_MILLIS}, '文化の日')," +
+                                    "(1669129200000 + ${TIMEZONE_DIFF_IN_MILLIS}, '勤労感謝の日')," +
+                                    "(1672498800000 + ${TIMEZONE_DIFF_IN_MILLIS}, '元日')," +
+                                    "(1672585200000 + ${TIMEZONE_DIFF_IN_MILLIS}, '休日')," +
+                                    "(1673190000000 + ${TIMEZONE_DIFF_IN_MILLIS}, '成人の日')," +
+                                    "(1676041200000 + ${TIMEZONE_DIFF_IN_MILLIS}, '建国記念の日')," +
+                                    "(1677078000000 + ${TIMEZONE_DIFF_IN_MILLIS}, '天皇誕生日')," +
+                                    "(1679324400000 + ${TIMEZONE_DIFF_IN_MILLIS}, '春分の日')," +
+                                    "(1682694000000 + ${TIMEZONE_DIFF_IN_MILLIS}, '昭和の日')," +
+                                    "(1683039600000 + ${TIMEZONE_DIFF_IN_MILLIS}, '憲法記念日')," +
+                                    "(1683126000000 + ${TIMEZONE_DIFF_IN_MILLIS}, 'みどりの日')," +
+                                    "(1683212400000 + ${TIMEZONE_DIFF_IN_MILLIS}, 'こどもの日')," +
+                                    "(1689519600000 + ${TIMEZONE_DIFF_IN_MILLIS}, '海の日')," +
+                                    "(1691679600000 + ${TIMEZONE_DIFF_IN_MILLIS}, '山の日')," +
+                                    "(1694962800000 + ${TIMEZONE_DIFF_IN_MILLIS}, '敬老の日')," +
+                                    "(1695394800000 + ${TIMEZONE_DIFF_IN_MILLIS}, '秋分の日')," +
+                                    "(1696777200000 + ${TIMEZONE_DIFF_IN_MILLIS}, 'スポーツの日')," +
+                                    "(1698937200000 + ${TIMEZONE_DIFF_IN_MILLIS}, '文化の日')," +
+                                    "(1700665200000 + ${TIMEZONE_DIFF_IN_MILLIS}, '勤労感謝の日')"
                             db.execSQL(sql)
                         }
                     })

@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.customalarm.calendar.CalendarDecorator
 import com.example.customalarm.calendar.CalendarListener
 import com.example.customalarm.calendar.CalendarTargetIdentifier
+import com.example.customalarm.calendar.HolidayDecorator
 import com.example.customalarm.common.Constant.Companion.DAY_IN_WEEK
 import com.example.customalarm.common.Constant.Companion.MAX_END_OF_MONTH
 import com.example.customalarm.common.Constant.Companion.MIN_END_OF_MONTH
@@ -18,7 +19,9 @@ import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
 import com.example.customalarm.common.Setting
 import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
+import com.example.customalarm.data.db.HolidayDao
 import com.example.customalarm.data.entity.AlarmSettingEntity
+import com.example.customalarm.data.entity.HolidayEntity
 import com.example.customalarm.dialog.*
 import com.example.customalarm.dialog.list.Day.*
 import com.example.customalarm.dialog.list.EndOfMonth
@@ -34,15 +37,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.threeten.bp.DayOfWeek.*
+import java.util.*
 
 class InputActivity : AppCompatActivity() {
 
     private val scope = CoroutineScope(Dispatchers.Default)
 
     private lateinit var alarmSettingDao: AlarmSettingDao
+    private lateinit var holidayDao: HolidayDao
 
     // TODO 仮実装。偶数の日にデコレートする。
     private val defaultDecorateTarget = CalendarTargetIdentifier { it.day % 2 == 0 }
+
+    private lateinit var holidays: List<HolidayEntity>
 
     private lateinit var hourPicker: NumberPicker
     private lateinit var minutePicker: NumberPicker
@@ -56,6 +63,7 @@ class InputActivity : AppCompatActivity() {
         setContentView(R.layout.activity_input)
 
         alarmSettingDao = AppDatabase.getDatabase(applicationContext).alarmSettingDao()
+        holidayDao = AppDatabase.getDatabase(applicationContext).holidayDao()
 
         val editMode = intent.getIntExtra("editMode", -1)
         val alarmId = intent.getIntExtra("alarmId", 0)
@@ -83,6 +91,11 @@ class InputActivity : AppCompatActivity() {
         calendar.setOnDateChangedListener(listener)
         calendar.setOnMonthChangedListener(listener)
         setTargetDateIdentifier(defaultDecorateTarget)
+
+        scope.launch {
+            holidays = holidayDao.selectAll()
+            calendar.addDecorator(HolidayDecorator(resources, holidays))
+        }
     }
 
     private fun settingTimeDrum() {
