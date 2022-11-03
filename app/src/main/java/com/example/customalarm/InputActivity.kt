@@ -277,8 +277,8 @@ class InputActivity : AppCompatActivity() {
             val entity = AlarmSettingEntity(alarmId, editAlarmTitle, time)
             scope.launch {
                 saveAlarmSetting(entity)
+                Util.scheduleAlarm(applicationContext, entity)
             }
-            Util.scheduleAlarm(applicationContext, entity)
             setResult(RESULT_OK, Intent())
             finish()
         }
@@ -317,7 +317,8 @@ class InputActivity : AppCompatActivity() {
 
     private suspend fun saveAlarmSetting(entity: AlarmSettingEntity) {
         try {
-            alarmSettingDao.saveAlarmSetting(entity)
+            val id = alarmSettingDao.saveAlarmSetting(entity)
+            entity.id = id.toInt()
         } catch (e: Exception) {
             // Do nothing
         }

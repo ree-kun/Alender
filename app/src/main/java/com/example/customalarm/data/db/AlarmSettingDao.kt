@@ -20,6 +20,6 @@ interface AlarmSettingDao {
     suspend fun selectById(id: Int): AlarmSettingEntity
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun saveAlarmSetting(entity: AlarmSettingEntity)
+    suspend fun saveAlarmSetting(entity: AlarmSettingEntity): Long
 
 }
