@@ -43,7 +43,7 @@ class NotifyActivity : AppCompatActivity(), MediaPlayer.OnCompletionListener, Te
         mediaPlayer = MediaPlayer.create(this, R.raw.sound)
         mediaPlayer!!.setOnCompletionListener(this)
 
-        val alarmId = intent.getIntExtra("alarmId", -1)
+        val alarmId = intent.getLongExtra("alarmId", -1)
         scope.launch {
             val alarmSettingEntity = alarmSettingDao.selectById(alarmId)
             speechText = alarmSettingEntity.title

@@ -29,7 +29,7 @@ object Util {
         var pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) pendingFlags =
             pendingFlags or PendingIntent.FLAG_IMMUTABLE
-        val alarmIntent = PendingIntent.getBroadcast(context, item.id, intent, pendingFlags)
+        val alarmIntent = PendingIntent.getBroadcast(context, item.id.toInt(), intent, pendingFlags)
 
         // TODO 電源OFF時などを考慮して、電力消費が少ない方法に変更する。
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

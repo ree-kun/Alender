@@ -14,7 +14,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("debug", intent.data.toString())
-        val alarmId = intent.data.toString().toInt()
+        val alarmId = intent.data.toString().toLong()
         Log.d("debug", alarmId.toString())
 
         val i = Intent(context, NotifyActivity::class.java)

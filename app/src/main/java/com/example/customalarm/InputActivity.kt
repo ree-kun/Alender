@@ -66,7 +66,7 @@ class InputActivity : AppCompatActivity() {
         holidayDao = AppDatabase.getDatabase(applicationContext).holidayDao()
 
         val editMode = intent.getIntExtra("editMode", -1)
-        val alarmId = intent.getIntExtra("alarmId", 0)
+        val alarmId = intent.getLongExtra("alarmId", 0)
 
         settingTimeDrum()
         settingInputs()
@@ -259,7 +259,7 @@ class InputActivity : AppCompatActivity() {
         }
     }
 
-    private fun settingOperationButton(alarmId: Int) {
+    private fun settingOperationButton(alarmId: Long) {
         cancelButton = findViewById(R.id.cancelButton)
         saveButton = findViewById(R.id.saveButton)
 
@@ -290,13 +290,13 @@ class InputActivity : AppCompatActivity() {
         minutePicker.value = now.get(Calendar.MINUTE) / Setting.TIME_PITCH
     }
 
-    private fun setupEditMode(alarmId: Int) {
+    private fun setupEditMode(alarmId: Long) {
         scope.launch {
             showAlarmSetting(alarmId)
         }
     }
 
-    private suspend fun showAlarmSetting(alarmId: Int) {
+    private suspend fun showAlarmSetting(alarmId: Long) {
         try {
             val alarmSettingEntity = alarmSettingDao.selectById(alarmId)
 
@@ -318,7 +318,7 @@ class InputActivity : AppCompatActivity() {
     private suspend fun saveAlarmSetting(entity: AlarmSettingEntity) {
         try {
             val id = alarmSettingDao.saveAlarmSetting(entity)
-            entity.id = id.toInt()
+            entity.id = id
         } catch (e: Exception) {
             // Do nothing
         }
