@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.NumberPicker
+import android.widget.NumberPicker.OnScrollListener.SCROLL_STATE_IDLE
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.customalarm.calendar.CalendarDecorator
@@ -16,7 +17,7 @@ import com.example.customalarm.common.Constant.Companion.MAX_END_OF_MONTH
 import com.example.customalarm.common.Constant.Companion.MIN_END_OF_MONTH
 import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
 import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
-import com.example.customalarm.common.Setting
+import com.example.customalarm.common.Setting.Companion.TIME_PITCH
 import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
 import com.example.customalarm.data.db.HolidayDao
@@ -37,7 +38,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.threeten.bp.DayOfWeek.*
-import java.util.*
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.LocalTime
 
 class InputActivity : AppCompatActivity() {
 
@@ -46,8 +49,16 @@ class InputActivity : AppCompatActivity() {
     private lateinit var alarmSettingDao: AlarmSettingDao
     private lateinit var holidayDao: HolidayDao
 
-    // TODO 仮実装。偶数の日にデコレートする。
-    private val defaultDecorateTarget = CalendarTargetIdentifier { it.day % 2 == 0 }
+    private var currentDecorator: CalendarDecorator? = null
+    private val defaultDecorateTarget = { startDateTime: LocalDateTime ->
+        val now = LocalTime.now()
+        var targetDate = startDateTime.toLocalDate()
+
+        if (now.isAfter(startDateTime.toLocalTime()))
+            targetDate = targetDate.plusDays(1)
+
+        CalendarTargetIdentifier { it.isEqual(targetDate) }
+    }
 
     private lateinit var holidays: List<HolidayEntity>
 
@@ -90,7 +101,6 @@ class InputActivity : AppCompatActivity() {
         calendar.setOnDateLongClickListener(listener)
         calendar.setOnDateChangedListener(listener)
         calendar.setOnMonthChangedListener(listener)
-        setTargetDateIdentifier(defaultDecorateTarget)
 
         scope.launch {
             holidays = holidayDao.selectAll()
@@ -107,15 +117,29 @@ class InputActivity : AppCompatActivity() {
         hourPicker.minValue = 0
         hourPicker.maxValue = 23
 
+        hourPicker.setOnScrollListener { _, scrollState ->
+            if (SCROLL_STATE_IDLE == scrollState)
+                // スクロール後、カレンダー上の通知日を更新する
+                setTargetDateIdentifier(defaultDecorateTarget(LocalDateTime.of(
+                    LocalDate.now(), LocalTime.of(hourPicker.value, minutePicker.value * TIME_PITCH))))
+        }
+
         // ドラムロール表示用の配列作成
-        val minutes = Array(60 / Setting.TIME_PITCH) {
-            (it * Setting.TIME_PITCH).toString().padStart(2, '0')
+        val minutes = Array(60 / TIME_PITCH) {
+            (it * TIME_PITCH).toString().padStart(2, '0')
         }
         // 配列のインデックス最小、最大を指定
         minutePicker.minValue = 0
         minutePicker.maxValue = minutes.size - 1
         // NumberPickerに配列をセットする
         minutePicker.displayedValues = minutes
+
+        minutePicker.setOnScrollListener { _, scrollState ->
+            if (SCROLL_STATE_IDLE == scrollState)
+                // スクロール後、カレンダー上の通知日を更新する
+                setTargetDateIdentifier(defaultDecorateTarget(LocalDateTime.of(
+                    LocalDate.now(), LocalTime.of(hourPicker.value, minutePicker.value * TIME_PITCH))))
+        }
     }
 
     private fun settingInputs() {
@@ -125,12 +149,13 @@ class InputActivity : AppCompatActivity() {
             ListSelectDialogFragment("繰り返し設定", RepeatUnit.values())
                 .onSubmit { unit ->
                     when (unit) {
-                        NO_REPEAT -> { setTargetDateIdentifier(defaultDecorateTarget) }
+                        NO_REPEAT -> { setTargetDateIdentifier(defaultDecorateTarget(LocalDateTime.of(
+                            LocalDate.now(), LocalTime.of(hourPicker.value, minutePicker.value * TIME_PITCH)))) /* TODO */ }
                         DAILY -> {
                             DailyRepeatDialogFragment(unit.text)
                                 .onSubmit { pitch ->
                                     setTargetDateIdentifier {
-                                        (it.date.toEpochDay() - CalendarDay.today().date.toEpochDay()) % pitch == 0L
+                                        (it.toEpochDay() - LocalDate.now().toEpochDay() /* TODO */) % pitch == 0L
                                     }
                                 }
                                 .execute(supportFragmentManager)
@@ -141,17 +166,17 @@ class InputActivity : AppCompatActivity() {
                             WeeklyRepeatDialogFragment(unit.text)
                                 .onSubmit { pair ->
                                     setTargetDateIdentifier {
-                                        val diff = (it.date.toEpochDay() - CalendarDay.today().date.toEpochDay()) / DAY_IN_WEEK
+                                        val diff = (it.toEpochDay() - LocalDate.now().toEpochDay() /* TODO */) / DAY_IN_WEEK
                                         (diff % pair.first) == 0L
                                                 && pair.second.firstOrNull { day ->
                                             when (day) {
-                                                Sun -> { it.date.dayOfWeek == SUNDAY }
-                                                Mon -> { it.date.dayOfWeek == MONDAY }
-                                                Tue -> { it.date.dayOfWeek == TUESDAY }
-                                                Wed -> { it.date.dayOfWeek == WEDNESDAY }
-                                                Thu -> { it.date.dayOfWeek == THURSDAY }
-                                                Fri -> { it.date.dayOfWeek == FRIDAY }
-                                                Sat -> { it.date.dayOfWeek == SATURDAY }
+                                                Sun -> { it.dayOfWeek == SUNDAY }
+                                                Mon -> { it.dayOfWeek == MONDAY }
+                                                Tue -> { it.dayOfWeek == TUESDAY }
+                                                Wed -> { it.dayOfWeek == WEDNESDAY }
+                                                Thu -> { it.dayOfWeek == THURSDAY }
+                                                Fri -> { it.dayOfWeek == FRIDAY }
+                                                Sat -> { it.dayOfWeek == SATURDAY }
                                             }
                                         } != null
                                     }
@@ -189,10 +214,10 @@ class InputActivity : AppCompatActivity() {
                                                 .toTypedArray()
                                             )
                                                 .onSubmit { list ->
-                                                    val normalIdentifier = { calendarDay: CalendarDay ->
-                                                        list.any { v -> v.date == calendarDay.day }
-                                                                || list.any { v -> v.date < 0 && calendarDay.date.isEqual(
-                                                            calendarDay.date.withDayOfMonth(1)
+                                                    val normalIdentifier = { date: LocalDate ->
+                                                        list.any { v -> v.date == date.dayOfMonth }
+                                                                || list.any { v -> v.date < 0 && date.isEqual(
+                                                            date.withDayOfMonth(1)
                                                                 .plusMonths(1)
                                                                 .minusDays((-v.date).toLong()))
                                                         }
@@ -207,12 +232,12 @@ class InputActivity : AppCompatActivity() {
                                                                 setTargetDateIdentifier {
                                                                     normalIdentifier(it) || when (endOfMonth) {
                                                                         TO_LAST_DAY -> {
-                                                                            val lastDay = it.date.plusDays(1).withDayOfMonth(1).minusDays(1)
-                                                                            it.date.isEqual(lastDay) && list.any { v -> lastDay.dayOfMonth < v.date }
+                                                                            val lastDate = it.plusDays(1).withDayOfMonth(1).minusDays(1)
+                                                                            it.isEqual(lastDate) && list.any { v -> lastDate.dayOfMonth < v.date }
                                                                         }
                                                                         TO_NEXT_FIRST_DAY -> {
-                                                                            val firstDay = it.date.withDayOfMonth(1)
-                                                                            it.date.isEqual(firstDay) && list.any { v -> firstDay.minusDays(1).dayOfMonth < v.date }
+                                                                            val firstDay = it.withDayOfMonth(1)
+                                                                            it.isEqual(firstDay) && list.any { v -> firstDay.minusDays(1).dayOfMonth < v.date }
 
                                                                         }
                                                                         NO_SET -> { false }
@@ -233,9 +258,9 @@ class InputActivity : AppCompatActivity() {
                                             MonthlyWeekRepeatDialogFragment(unit.text)
                                                 .onSubmit { pair ->
                                                     setTargetDateIdentifier {
-                                                        pair.first.any { v -> (it.day - 1) in (DAY_IN_WEEK * (v - 1)) until DAY_IN_WEEK * v
-                                                                || (v == -1 && it.date.month != it.date.plusDays(DAY_IN_WEEK.toLong()).month) }
-                                                                && when (it.date.dayOfWeek!!) {
+                                                        pair.first.any { v -> (it.dayOfMonth - 1) in (DAY_IN_WEEK * (v - 1)) until DAY_IN_WEEK * v
+                                                                || (v == -1 && it.month != it.plusDays(DAY_IN_WEEK.toLong()).month) }
+                                                                && when (it.dayOfWeek!!) {
                                                             SUNDAY -> { pair.second.any { v -> v == Sun } }
                                                             MONDAY -> { pair.second.any { v -> v == Mon } }
                                                             TUESDAY -> { pair.second.any { v -> v == Tue } }
@@ -270,8 +295,8 @@ class InputActivity : AppCompatActivity() {
 
         saveButton.setOnClickListener {
             val hour = hourPicker.value
-            val minute = minutePicker.value * Setting.TIME_PITCH
-            val time = "$hour:${minute.toString().padStart(2, '0')}"
+            val minute = minutePicker.value * TIME_PITCH
+            val time = LocalTime.of(hour, minute)
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
             val entity = AlarmSettingEntity(alarmId, editAlarmTitle, time)
@@ -285,34 +310,32 @@ class InputActivity : AppCompatActivity() {
     }
 
     private fun setupCreateMode() {
-        val now = Calendar.getInstance()
-        hourPicker.value = now.get(Calendar.HOUR_OF_DAY)
-        minutePicker.value = now.get(Calendar.MINUTE) / Setting.TIME_PITCH
+        val now = LocalDateTime.now()
+        hourPicker.value = now.hour
+        minutePicker.value = now.minute
+        setTargetDateIdentifier(defaultDecorateTarget(now))
     }
 
     private fun setupEditMode(alarmId: Long) {
         scope.launch {
-            showAlarmSetting(alarmId)
-        }
-    }
-
-    private suspend fun showAlarmSetting(alarmId: Long) {
-        try {
             val alarmSettingEntity = alarmSettingDao.selectById(alarmId)
 
             withContext(Dispatchers.Main) {
-                hourPicker.value = alarmSettingEntity.time.split(":")[0].toInt()
-                minutePicker.value = alarmSettingEntity.time.split(":")[1].toInt()
+                hourPicker.value = alarmSettingEntity.time.hour
+                minutePicker.value = alarmSettingEntity.time.minute
                 findViewById<EditText>(R.id.editAlarmTitle).setText(alarmSettingEntity.title)
             }
-        } catch (e: Exception) {
-            // Do nothing
+
+            setTargetDateIdentifier(defaultDecorateTarget(LocalDateTime.of(
+                LocalDate.now(), LocalTime.of(hourPicker.value, minutePicker.value * TIME_PITCH)
+            )))
         }
     }
 
     private fun setTargetDateIdentifier(identifier: CalendarTargetIdentifier) {
-        calendar.removeDecorators()
-        calendar.addDecorator(CalendarDecorator(resources, identifier))
+        if (currentDecorator != null) calendar.removeDecorator(currentDecorator)
+        currentDecorator = CalendarDecorator(resources, identifier)
+        calendar.addDecorator(currentDecorator)
     }
 
     private suspend fun saveAlarmSetting(entity: AlarmSettingEntity) {

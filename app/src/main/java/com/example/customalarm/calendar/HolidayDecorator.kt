@@ -3,6 +3,7 @@ package com.example.customalarm.calendar
 import android.content.res.Resources
 import androidx.core.content.res.ResourcesCompat
 import com.example.customalarm.R
+import com.example.customalarm.common.data.CalendarHelper
 import com.example.customalarm.data.entity.HolidayEntity
 import com.prolificinteractive.materialcalendarview.*
 
@@ -12,7 +13,7 @@ class HolidayDecorator(
 ) : DayViewDecorator {
 
     override fun shouldDecorate(day: CalendarDay): Boolean {
-        return holidays.firstOrNull { it.date == day.date.toEpochDay() } != null
+        return holidays.firstOrNull { it.date.isEqual(CalendarHelper.toLocalDate(day)) } != null
     }
 
     override fun decorate(view: DayViewFacade) {

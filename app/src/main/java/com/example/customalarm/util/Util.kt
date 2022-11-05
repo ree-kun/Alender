@@ -8,19 +8,18 @@ import android.net.Uri
 import android.os.Build
 import com.example.customalarm.data.entity.AlarmSettingEntity
 import com.example.customalarm.receiver.AlarmReceiver
-import java.util.*
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneOffset
 
 object Util {
 
     fun scheduleAlarm(context: Context, item: AlarmSettingEntity) {
-        var time = Calendar.getInstance()
-        time.set(Calendar.HOUR_OF_DAY, item.time.split(":")[0].toInt())
-        time.set(Calendar.MINUTE, item.time.split(":")[1].toInt())
-        time.set(Calendar.SECOND, 0)
+        var time = LocalDateTime.of(LocalDate.now(), item.time)
 
-        val now = Calendar.getInstance()
+        val now = LocalDateTime.now()
         // 当日の設定時刻を過ぎている場合は次の設定時刻へ変更 TODO 同日中に複数回繰り返す場合の考慮漏れ
-        if (time.before(now)) time = calcNextAlarmTime(time)
+        if (time.isBefore(now)) time = calcNextAlarmTime(time)
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java)
@@ -31,20 +30,21 @@ object Util {
             pendingFlags or PendingIntent.FLAG_IMMUTABLE
         val alarmIntent = PendingIntent.getBroadcast(context, item.id.toInt(), intent, pendingFlags)
 
+        val timeInMillis = time.atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli()
+
         // TODO 電源OFF時などを考慮して、電力消費が少ない方法に変更する。
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time.timeInMillis, alarmIntent)
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeInMillis, alarmIntent)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(time.timeInMillis, null), alarmIntent)
+            alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(timeInMillis, null), alarmIntent)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, time.timeInMillis, alarmIntent)
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP,timeInMillis, alarmIntent)
         } else {
-            alarmManager[AlarmManager.RTC_WAKEUP, time.timeInMillis] = alarmIntent
+            alarmManager[AlarmManager.RTC_WAKEUP, timeInMillis] = alarmIntent
         }
     }
 
-    private fun calcNextAlarmTime(prev: Calendar): Calendar {
-        prev.set(Calendar.DATE, prev.get(Calendar.DATE) +  1)
-        return prev
+    private fun calcNextAlarmTime(prev: LocalDateTime): LocalDateTime {
+        return prev.plusDays(1)
     }
 }
