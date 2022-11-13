@@ -9,8 +9,8 @@ import android.widget.NumberPicker.OnScrollListener.SCROLL_STATE_IDLE
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.customalarm.calendar.CalendarDecorator
-import com.example.customalarm.calendar.CalendarListener
 import com.example.customalarm.calendar.CalendarTargetIdentifier
+import com.example.customalarm.calendar.CalendarTargetIdentifierGenerator
 import com.example.customalarm.calendar.HolidayDecorator
 import com.example.customalarm.common.Constant.Companion.DAY_IN_WEEK
 import com.example.customalarm.common.Constant.Companion.MAX_END_OF_MONTH
@@ -18,6 +18,7 @@ import com.example.customalarm.common.Constant.Companion.MIN_END_OF_MONTH
 import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
 import com.example.customalarm.common.EditMode.Companion.EDIT_MODE
 import com.example.customalarm.common.Setting.Companion.TIME_PITCH
+import com.example.customalarm.common.data.CalendarHelper
 import com.example.customalarm.data.db.AlarmSettingDao
 import com.example.customalarm.data.db.AppDatabase
 import com.example.customalarm.data.db.HolidayDao
@@ -49,16 +50,19 @@ class InputActivity : AppCompatActivity() {
     private lateinit var alarmSettingDao: AlarmSettingDao
     private lateinit var holidayDao: HolidayDao
 
+    private lateinit var generator: CalendarTargetIdentifierGenerator
     private var currentDecorator: CalendarDecorator? = null
-    private val defaultDecorateTarget = { startDateTime: LocalDateTime ->
-        val now = LocalTime.now()
-        var targetDate = startDateTime.toLocalDate()
+    private val defaultDecorateTarget = { targetDateTime: LocalDateTime ->
+        val now = LocalDateTime.now()
+        var targetDate = targetDateTime.toLocalDate()
 
-        if (now.isAfter(startDateTime.toLocalTime()))
+        if (now.isAfter(targetDateTime))
             targetDate = targetDate.plusDays(1)
 
         CalendarTargetIdentifier { it.isEqual(targetDate) }
     }
+
+    private var targetDateTime = LocalDateTime.now()
 
     private lateinit var holidays: List<HolidayEntity>
 
@@ -97,10 +101,10 @@ class InputActivity : AppCompatActivity() {
 //        calendar.firstDayOfWeek = FIRST_DAY_OF_WEEK
         calendar.selectRange(CalendarDay.today(), CalendarDay.today())
 
-        val listener = CalendarListener()
-        calendar.setOnDateLongClickListener(listener)
-        calendar.setOnDateChangedListener(listener)
-        calendar.setOnMonthChangedListener(listener)
+        calendar.setOnDateChangedListener { _, date, _ ->
+            targetDateTime = targetDateTime.with(CalendarHelper.toLocalDate(date))
+            refreshTargetDate()
+        }
 
         scope.launch {
             holidays = holidayDao.selectAll()
@@ -118,10 +122,11 @@ class InputActivity : AppCompatActivity() {
         hourPicker.maxValue = 23
 
         hourPicker.setOnScrollListener { _, scrollState ->
-            if (SCROLL_STATE_IDLE == scrollState)
+            if (SCROLL_STATE_IDLE == scrollState) {
                 // スクロール後、カレンダー上の通知日を更新する
-                setTargetDateIdentifier(defaultDecorateTarget(LocalDateTime.of(
-                    LocalDate.now(), LocalTime.of(hourPicker.value, minutePicker.value * TIME_PITCH))))
+                targetDateTime = targetDateTime.withHour(hourPicker.value)
+                refreshTargetDate()
+            }
         }
 
         // ドラムロール表示用の配列作成
@@ -135,10 +140,11 @@ class InputActivity : AppCompatActivity() {
         minutePicker.displayedValues = minutes
 
         minutePicker.setOnScrollListener { _, scrollState ->
-            if (SCROLL_STATE_IDLE == scrollState)
+            if (SCROLL_STATE_IDLE == scrollState) {
                 // スクロール後、カレンダー上の通知日を更新する
-                setTargetDateIdentifier(defaultDecorateTarget(LocalDateTime.of(
-                    LocalDate.now(), LocalTime.of(hourPicker.value, minutePicker.value * TIME_PITCH))))
+                targetDateTime = targetDateTime.withMinute(minutePicker.value * TIME_PITCH)
+                refreshTargetDate()
+            }
         }
     }
 
@@ -149,13 +155,16 @@ class InputActivity : AppCompatActivity() {
             ListSelectDialogFragment("繰り返し設定", RepeatUnit.values())
                 .onSubmit { unit ->
                     when (unit) {
-                        NO_REPEAT -> { setTargetDateIdentifier(defaultDecorateTarget(LocalDateTime.of(
-                            LocalDate.now(), LocalTime.of(hourPicker.value, minutePicker.value * TIME_PITCH)))) /* TODO */ }
+                        NO_REPEAT -> {
+                            setTargetDateIdentifier(defaultDecorateTarget)
+                        }
                         DAILY -> {
                             DailyRepeatDialogFragment(unit.text)
                                 .onSubmit { pitch ->
-                                    setTargetDateIdentifier {
-                                        (it.toEpochDay() - LocalDate.now().toEpochDay() /* TODO */) % pitch == 0L
+                                    setTargetDateIdentifier { targetDateTime ->
+                                        CalendarTargetIdentifier {
+                                            (it.toEpochDay() - targetDateTime.toLocalDate().toEpochDay()) % pitch == 0L
+                                        }
                                     }
                                 }
                                 .execute(supportFragmentManager)
@@ -165,20 +174,22 @@ class InputActivity : AppCompatActivity() {
                             // 従って、フォームは１種類で良い。
                             WeeklyRepeatDialogFragment(unit.text)
                                 .onSubmit { pair ->
-                                    setTargetDateIdentifier {
-                                        val diff = (it.toEpochDay() - LocalDate.now().toEpochDay() /* TODO */) / DAY_IN_WEEK
-                                        (diff % pair.first) == 0L
-                                                && pair.second.firstOrNull { day ->
-                                            when (day) {
-                                                Sun -> { it.dayOfWeek == SUNDAY }
-                                                Mon -> { it.dayOfWeek == MONDAY }
-                                                Tue -> { it.dayOfWeek == TUESDAY }
-                                                Wed -> { it.dayOfWeek == WEDNESDAY }
-                                                Thu -> { it.dayOfWeek == THURSDAY }
-                                                Fri -> { it.dayOfWeek == FRIDAY }
-                                                Sat -> { it.dayOfWeek == SATURDAY }
-                                            }
-                                        } != null
+                                    setTargetDateIdentifier { targetDateTime ->
+                                        CalendarTargetIdentifier {
+                                            val diff = (it.toEpochDay() - targetDateTime.toLocalDate().toEpochDay()) / DAY_IN_WEEK
+                                            (diff % pair.first) == 0L
+                                                    && pair.second.firstOrNull { day ->
+                                                when (day) {
+                                                    Sun -> { it.dayOfWeek == SUNDAY }
+                                                    Mon -> { it.dayOfWeek == MONDAY }
+                                                    Tue -> { it.dayOfWeek == TUESDAY }
+                                                    Wed -> { it.dayOfWeek == WEDNESDAY }
+                                                    Thu -> { it.dayOfWeek == THURSDAY }
+                                                    Fri -> { it.dayOfWeek == FRIDAY }
+                                                    Sat -> { it.dayOfWeek == SATURDAY }
+                                                }
+                                            } != null
+                                        }
                                     }
                                 }
                                 .execute(supportFragmentManager)
@@ -230,24 +241,28 @@ class InputActivity : AppCompatActivity() {
                                                         SingleChoiceDialogFragment(title, EndOfMonth.values())
                                                             .onSubmit { endOfMonth ->
                                                                 setTargetDateIdentifier {
-                                                                    normalIdentifier(it) || when (endOfMonth) {
-                                                                        TO_LAST_DAY -> {
-                                                                            val lastDate = it.plusDays(1).withDayOfMonth(1).minusDays(1)
-                                                                            it.isEqual(lastDate) && list.any { v -> lastDate.dayOfMonth < v.date }
-                                                                        }
-                                                                        TO_NEXT_FIRST_DAY -> {
-                                                                            val firstDay = it.withDayOfMonth(1)
-                                                                            it.isEqual(firstDay) && list.any { v -> firstDay.minusDays(1).dayOfMonth < v.date }
+                                                                    CalendarTargetIdentifier {
+                                                                        normalIdentifier(it) || when (endOfMonth) {
+                                                                            TO_LAST_DAY -> {
+                                                                                val lastDate = it.plusDays(1).withDayOfMonth(1).minusDays(1)
+                                                                                it.isEqual(lastDate) && list.any { v -> lastDate.dayOfMonth < v.date }
+                                                                            }
+                                                                            TO_NEXT_FIRST_DAY -> {
+                                                                                val firstDay = it.withDayOfMonth(1)
+                                                                                it.isEqual(firstDay) && list.any { v -> firstDay.minusDays(1).dayOfMonth < v.date }
 
+                                                                            }
+                                                                            NO_SET -> { false }
                                                                         }
-                                                                        NO_SET -> { false }
                                                                     }
                                                                 }
                                                             }
                                                             .execute(supportFragmentManager)
                                                     } else {
                                                         setTargetDateIdentifier {
-                                                            normalIdentifier(it)
+                                                            CalendarTargetIdentifier {
+                                                                normalIdentifier(it)
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -258,16 +273,18 @@ class InputActivity : AppCompatActivity() {
                                             MonthlyWeekRepeatDialogFragment(unit.text)
                                                 .onSubmit { pair ->
                                                     setTargetDateIdentifier {
-                                                        pair.first.any { v -> (it.dayOfMonth - 1) in (DAY_IN_WEEK * (v - 1)) until DAY_IN_WEEK * v
-                                                                || (v == -1 && it.month != it.plusDays(DAY_IN_WEEK.toLong()).month) }
-                                                                && when (it.dayOfWeek!!) {
-                                                            SUNDAY -> { pair.second.any { v -> v == Sun } }
-                                                            MONDAY -> { pair.second.any { v -> v == Mon } }
-                                                            TUESDAY -> { pair.second.any { v -> v == Tue } }
-                                                            WEDNESDAY -> { pair.second.any { v -> v == Wed } }
-                                                            THURSDAY -> { pair.second.any { v -> v == Thu } }
-                                                            FRIDAY -> { pair.second.any { v -> v == Fri } }
-                                                            SATURDAY -> { pair.second.any { v -> v == Sat } }
+                                                        CalendarTargetIdentifier {
+                                                            pair.first.any { v -> (it.dayOfMonth - 1) in (DAY_IN_WEEK * (v - 1)) until DAY_IN_WEEK * v
+                                                                    || (v == -1 && it.month != it.plusDays(DAY_IN_WEEK.toLong()).month) }
+                                                                    && when (it.dayOfWeek!!) {
+                                                                SUNDAY -> { pair.second.any { v -> v == Sun } }
+                                                                MONDAY -> { pair.second.any { v -> v == Mon } }
+                                                                TUESDAY -> { pair.second.any { v -> v == Tue } }
+                                                                WEDNESDAY -> { pair.second.any { v -> v == Wed } }
+                                                                THURSDAY -> { pair.second.any { v -> v == Thu } }
+                                                                FRIDAY -> { pair.second.any { v -> v == Fri } }
+                                                                SATURDAY -> { pair.second.any { v -> v == Sat } }
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -312,8 +329,9 @@ class InputActivity : AppCompatActivity() {
     private fun setupCreateMode() {
         val now = LocalDateTime.now()
         hourPicker.value = now.hour
-        minutePicker.value = now.minute
-        setTargetDateIdentifier(defaultDecorateTarget(now))
+        minutePicker.value = now.minute / TIME_PITCH
+        targetDateTime = now
+        setTargetDateIdentifier(defaultDecorateTarget)
     }
 
     private fun setupEditMode(alarmId: Long) {
@@ -322,19 +340,23 @@ class InputActivity : AppCompatActivity() {
 
             withContext(Dispatchers.Main) {
                 hourPicker.value = alarmSettingEntity.time.hour
-                minutePicker.value = alarmSettingEntity.time.minute
+                minutePicker.value = alarmSettingEntity.time.minute / TIME_PITCH
                 findViewById<EditText>(R.id.editAlarmTitle).setText(alarmSettingEntity.title)
+                targetDateTime = LocalDateTime.of(LocalDate.now(), alarmSettingEntity.time)
             }
 
-            setTargetDateIdentifier(defaultDecorateTarget(LocalDateTime.of(
-                LocalDate.now(), LocalTime.of(hourPicker.value, minutePicker.value * TIME_PITCH)
-            )))
+            setTargetDateIdentifier(defaultDecorateTarget)
         }
     }
 
-    private fun setTargetDateIdentifier(identifier: CalendarTargetIdentifier) {
+    private fun setTargetDateIdentifier(generator: CalendarTargetIdentifierGenerator) {
+        this.generator = generator
+        refreshTargetDate()
+    }
+
+    private fun refreshTargetDate() {
         if (currentDecorator != null) calendar.removeDecorator(currentDecorator)
-        currentDecorator = CalendarDecorator(resources, identifier)
+        currentDecorator = CalendarDecorator(resources, targetDateTime, generator)
         calendar.addDecorator(currentDecorator)
     }
 
