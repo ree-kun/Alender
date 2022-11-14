@@ -32,20 +32,14 @@ import com.example.customalarm.dialog.list.ListOption
 import com.example.customalarm.dialog.list.RepeatUnit
 import com.example.customalarm.dialog.list.RepeatUnit.*
 import com.example.customalarm.util.Util
-import com.prolificinteractive.materialcalendarview.CalendarDay
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import org.threeten.bp.DayOfWeek.*
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
 
 class InputActivity : AppCompatActivity() {
-
-    private val scope = CoroutineScope(Dispatchers.Default)
 
     private lateinit var alarmSettingDao: AlarmSettingDao
     private lateinit var holidayDao: HolidayDao
@@ -62,7 +56,8 @@ class InputActivity : AppCompatActivity() {
         CalendarTargetIdentifier { it.isEqual(targetDate) }
     }
 
-    private var targetDateTime = LocalDateTime.now()
+    private lateinit var targetDate: LocalDate
+    private lateinit var targetTime: LocalTime
 
     private lateinit var holidays: List<HolidayEntity>
 
@@ -82,34 +77,36 @@ class InputActivity : AppCompatActivity() {
 
         val editMode = intent.getIntExtra("editMode", -1)
         val alarmId = intent.getLongExtra("alarmId", 0)
-
-        settingTimeDrum()
-        settingInputs()
-        settingOperationButton(alarmId)
-        settingCalendar()
-
         // editModeがなくても、alarmIdの有無で判定しても同じ。
         when (editMode) {
             CREATE_MODE -> { setupCreateMode() }
             EDIT_MODE -> { setupEditMode(alarmId) }
             else -> { /** do nothing */ }
         }
+
+        settingTimeDrum()
+        settingInputs()
+        settingOperationButton(alarmId)
+        settingCalendar()
     }
 
     private fun settingCalendar() {
         calendar = findViewById(R.id.calendar)
 //        calendar.firstDayOfWeek = FIRST_DAY_OF_WEEK
-        calendar.selectRange(CalendarDay.today(), CalendarDay.today())
+        val calendarDay = CalendarHelper.toCalendarDay(targetDate)
+        calendar.selectRange(calendarDay, calendarDay)
 
         calendar.setOnDateChangedListener { _, date, _ ->
-            targetDateTime = targetDateTime.with(CalendarHelper.toLocalDate(date))
+            targetDate = CalendarHelper.toLocalDate(date)
             refreshTargetDate()
         }
 
-        scope.launch {
+        runBlocking {
             holidays = holidayDao.selectAll()
             calendar.addDecorator(HolidayDecorator(resources, holidays))
         }
+
+        setTargetDateIdentifier(defaultDecorateTarget)
     }
 
     private fun settingTimeDrum() {
@@ -120,11 +117,12 @@ class InputActivity : AppCompatActivity() {
         // 配列のインデックス最小、最大を指定
         hourPicker.minValue = 0
         hourPicker.maxValue = 23
+        hourPicker.value = targetTime.hour
 
         hourPicker.setOnScrollListener { _, scrollState ->
             if (SCROLL_STATE_IDLE == scrollState) {
                 // スクロール後、カレンダー上の通知日を更新する
-                targetDateTime = targetDateTime.withHour(hourPicker.value)
+                targetTime = targetTime.withHour(hourPicker.value)
                 refreshTargetDate()
             }
         }
@@ -138,11 +136,12 @@ class InputActivity : AppCompatActivity() {
         minutePicker.maxValue = minutes.size - 1
         // NumberPickerに配列をセットする
         minutePicker.displayedValues = minutes
+        minutePicker.value = targetTime.minute / TIME_PITCH
 
         minutePicker.setOnScrollListener { _, scrollState ->
             if (SCROLL_STATE_IDLE == scrollState) {
                 // スクロール後、カレンダー上の通知日を更新する
-                targetDateTime = targetDateTime.withMinute(minutePicker.value * TIME_PITCH)
+                targetTime = targetTime.withMinute(minutePicker.value * TIME_PITCH)
                 refreshTargetDate()
             }
         }
@@ -311,13 +310,10 @@ class InputActivity : AppCompatActivity() {
         }
 
         saveButton.setOnClickListener {
-            val hour = hourPicker.value
-            val minute = minutePicker.value * TIME_PITCH
-            val time = LocalTime.of(hour, minute)
             val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
-            val entity = AlarmSettingEntity(alarmId, editAlarmTitle, time)
-            scope.launch {
+            val entity = AlarmSettingEntity(alarmId, editAlarmTitle, targetDate, targetTime)
+            runBlocking {
                 saveAlarmSetting(entity)
                 Util.scheduleAlarm(applicationContext, entity)
             }
@@ -328,24 +324,17 @@ class InputActivity : AppCompatActivity() {
 
     private fun setupCreateMode() {
         val now = LocalDateTime.now()
-        hourPicker.value = now.hour
-        minutePicker.value = now.minute / TIME_PITCH
-        targetDateTime = now
-        setTargetDateIdentifier(defaultDecorateTarget)
+        targetDate = now.toLocalDate()
+        targetTime = now.toLocalTime()
     }
 
     private fun setupEditMode(alarmId: Long) {
-        scope.launch {
+        runBlocking {
             val alarmSettingEntity = alarmSettingDao.selectById(alarmId)
 
-            withContext(Dispatchers.Main) {
-                hourPicker.value = alarmSettingEntity.time.hour
-                minutePicker.value = alarmSettingEntity.time.minute / TIME_PITCH
-                findViewById<EditText>(R.id.editAlarmTitle).setText(alarmSettingEntity.title)
-                targetDateTime = LocalDateTime.of(LocalDate.now(), alarmSettingEntity.time)
-            }
-
-            setTargetDateIdentifier(defaultDecorateTarget)
+            findViewById<EditText>(R.id.editAlarmTitle).setText(alarmSettingEntity.title)
+            targetDate = alarmSettingEntity.startDate
+            targetTime = alarmSettingEntity.time
         }
     }
 
@@ -356,7 +345,7 @@ class InputActivity : AppCompatActivity() {
 
     private fun refreshTargetDate() {
         if (currentDecorator != null) calendar.removeDecorator(currentDecorator)
-        currentDecorator = CalendarDecorator(resources, targetDateTime, generator)
+        currentDecorator = CalendarDecorator(resources, targetDate.atTime(targetTime), generator)
         calendar.addDecorator(currentDecorator)
     }
 

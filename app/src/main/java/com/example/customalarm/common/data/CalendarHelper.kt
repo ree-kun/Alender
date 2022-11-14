@@ -11,6 +11,10 @@ class CalendarHelper {
             return LocalDate.ofEpochDay(calendarDay.date.toEpochDay())
         }
 
+        fun toCalendarDay(localDate: LocalDate): CalendarDay {
+            return CalendarDay.from(localDate)
+        }
+
     }
 
 }
