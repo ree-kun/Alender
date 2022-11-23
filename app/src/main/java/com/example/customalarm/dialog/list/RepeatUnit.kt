@@ -5,9 +5,10 @@ enum class RepeatUnit(
 ) : ListOption {
 
     NO_REPEAT("繰り返さない"),
-    DAILY("日ごとに設定"),
-    WEEKLY("週,曜日ごとに設定"),
-    MONTHLY("月ごとに設定"),
+    DAILY("毎日/◯日ごと"),
+    WEEKLY("毎週/◯週ごと ◯曜日"),
+    MONTHLY_DAY("毎月◯日"),
+    MONTHLY_NTH_DAY("毎月第◯ ◯曜日"),
 //    YEARLY("年ごとに設定"),
 
 }

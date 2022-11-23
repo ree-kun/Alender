@@ -12,7 +12,11 @@ import com.example.customalarm.calendar.CalendarDecorator
 import com.example.customalarm.calendar.CalendarTargetIdentifier
 import com.example.customalarm.calendar.CalendarTargetIdentifierGenerator
 import com.example.customalarm.calendar.HolidayDecorator
-import com.example.customalarm.common.Constant.Companion.DAY_IN_WEEK
+import com.example.customalarm.calendar.logic.DailyIdentifier
+import com.example.customalarm.calendar.logic.MonthlyDayIdentifier
+import com.example.customalarm.calendar.logic.MonthlyWeekIdentifier
+import com.example.customalarm.calendar.logic.WeeklyIdentifier
+import com.example.customalarm.calendar.logic.dto.MonthlyDay
 import com.example.customalarm.common.Constant.Companion.MAX_END_OF_MONTH
 import com.example.customalarm.common.Constant.Companion.MIN_END_OF_MONTH
 import com.example.customalarm.common.EditMode.Companion.CREATE_MODE
@@ -25,16 +29,12 @@ import com.example.customalarm.data.db.HolidayDao
 import com.example.customalarm.data.entity.AlarmSettingEntity
 import com.example.customalarm.data.entity.HolidayEntity
 import com.example.customalarm.dialog.*
-import com.example.customalarm.dialog.list.Day.*
 import com.example.customalarm.dialog.list.EndOfMonth
-import com.example.customalarm.dialog.list.EndOfMonth.*
-import com.example.customalarm.dialog.list.ListOption
 import com.example.customalarm.dialog.list.RepeatUnit
 import com.example.customalarm.dialog.list.RepeatUnit.*
 import com.example.customalarm.util.Util
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView
 import kotlinx.coroutines.*
-import org.threeten.bp.DayOfWeek.*
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
@@ -161,9 +161,7 @@ class InputActivity : AppCompatActivity() {
                             DailyRepeatDialogFragment(unit.text)
                                 .onSubmit { pitch ->
                                     setTargetDateIdentifier { targetDateTime ->
-                                        CalendarTargetIdentifier {
-                                            (it.toEpochDay() - targetDateTime.toLocalDate().toEpochDay()) % pitch == 0L
-                                        }
+                                        DailyIdentifier(targetDateTime, pitch)
                                     }
                                 }
                                 .execute(supportFragmentManager)
@@ -174,121 +172,42 @@ class InputActivity : AppCompatActivity() {
                             WeeklyRepeatDialogFragment(unit.text)
                                 .onSubmit { pair ->
                                     setTargetDateIdentifier { targetDateTime ->
-                                        CalendarTargetIdentifier {
-                                            val diff = (it.toEpochDay() - targetDateTime.toLocalDate().toEpochDay()) / DAY_IN_WEEK
-                                            (diff % pair.first) == 0L
-                                                    && pair.second.firstOrNull { day ->
-                                                when (day) {
-                                                    Sun -> { it.dayOfWeek == SUNDAY }
-                                                    Mon -> { it.dayOfWeek == MONDAY }
-                                                    Tue -> { it.dayOfWeek == TUESDAY }
-                                                    Wed -> { it.dayOfWeek == WEDNESDAY }
-                                                    Thu -> { it.dayOfWeek == THURSDAY }
-                                                    Fri -> { it.dayOfWeek == FRIDAY }
-                                                    Sat -> { it.dayOfWeek == SATURDAY }
+                                        WeeklyIdentifier(targetDateTime, pair.first, pair.second)
+                                    }
+                                }
+                                .execute(supportFragmentManager)
+                        }
+                        MONTHLY_DAY -> {
+                            MultiChoiceDialogFragment(unit.text, ((1..31) + (-3..-1)).map {
+                                MonthlyDay(it)
+                            }
+                                .toTypedArray()
+                            )
+                                .onSubmit { list ->
+                                    val firstAfter29th = list.find { it.dayOfMonth > MIN_END_OF_MONTH }
+                                    if (firstAfter29th != null) {
+                                        val buff = "${firstAfter29th.text}${if (firstAfter29th.dayOfMonth == MAX_END_OF_MONTH) "" else "以降"}"
+                                        val title = "月末${buff}がない場合の設定"
+                                        SingleChoiceDialogFragment(title, EndOfMonth.values())
+                                            .onSubmit { endOfMonth ->
+                                                setTargetDateIdentifier {
+                                                    MonthlyDayIdentifier(list, endOfMonth)
                                                 }
-                                            } != null
+                                            }
+                                            .execute(supportFragmentManager)
+                                    } else {
+                                        setTargetDateIdentifier {
+                                            MonthlyDayIdentifier(list)
                                         }
                                     }
                                 }
                                 .execute(supportFragmentManager)
                         }
-                        MONTHLY -> {
-                            SingleChoiceDialogFragment(unit.text, arrayOf("日にちから設定", "週,曜日から設定")
-                                .mapIndexed { i, it ->
-                                    object : ListOption {
-                                        val id = i
-                                        override val text: String
-                                            get() = it
-                                    }
-                                }
-                                .toTypedArray()
-                            )
-                                .onSubmit { option ->
-                                    when (option.id) {
-                                        // 日にちから設定
-                                        0 -> {
-                                            MultiChoiceDialogFragment(option.text, ((1..31) + (-3..-1)).map {
-                                                object : ListOption {
-                                                    val date = it
-                                                    override val text: String
-                                                        get() = if (it > 0) "${date}日"
-                                                        else when (it) {
-                                                            -1 -> "最終日"
-                                                            -2 -> "最終日の前日"
-                                                            -3 -> "最終日の前々日"
-                                                            else -> ""
-                                                        }
-                                                }
-                                            }
-                                                .toTypedArray()
-                                            )
-                                                .onSubmit { list ->
-                                                    val normalIdentifier = { date: LocalDate ->
-                                                        list.any { v -> v.date == date.dayOfMonth }
-                                                                || list.any { v -> v.date < 0 && date.isEqual(
-                                                            date.withDayOfMonth(1)
-                                                                .plusMonths(1)
-                                                                .minusDays((-v.date).toLong()))
-                                                        }
-                                                    }
-
-                                                    val firstAfter29th = list.find { it.date > MIN_END_OF_MONTH }
-                                                    if (firstAfter29th != null) {
-                                                        val buff = "${firstAfter29th.text}${if (firstAfter29th.date == MAX_END_OF_MONTH) "" else "以降"}"
-                                                        val title = "月末${buff}がない場合の設定"
-                                                        SingleChoiceDialogFragment(title, EndOfMonth.values())
-                                                            .onSubmit { endOfMonth ->
-                                                                setTargetDateIdentifier {
-                                                                    CalendarTargetIdentifier {
-                                                                        normalIdentifier(it) || when (endOfMonth) {
-                                                                            TO_LAST_DAY -> {
-                                                                                val lastDate = it.plusDays(1).withDayOfMonth(1).minusDays(1)
-                                                                                it.isEqual(lastDate) && list.any { v -> lastDate.dayOfMonth < v.date }
-                                                                            }
-                                                                            TO_NEXT_FIRST_DAY -> {
-                                                                                val firstDay = it.withDayOfMonth(1)
-                                                                                it.isEqual(firstDay) && list.any { v -> firstDay.minusDays(1).dayOfMonth < v.date }
-
-                                                                            }
-                                                                            NO_SET -> { false }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                            .execute(supportFragmentManager)
-                                                    } else {
-                                                        setTargetDateIdentifier {
-                                                            CalendarTargetIdentifier {
-                                                                normalIdentifier(it)
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                .execute(supportFragmentManager)
-                                        }
-                                        // 週,曜日から設定
-                                        1 -> {
-                                            MonthlyWeekRepeatDialogFragment(unit.text)
-                                                .onSubmit { pair ->
-                                                    setTargetDateIdentifier {
-                                                        CalendarTargetIdentifier {
-                                                            pair.first.any { v -> (it.dayOfMonth - 1) in (DAY_IN_WEEK * (v - 1)) until DAY_IN_WEEK * v
-                                                                    || (v == -1 && it.month != it.plusDays(DAY_IN_WEEK.toLong()).month) }
-                                                                    && when (it.dayOfWeek!!) {
-                                                                SUNDAY -> { pair.second.any { v -> v == Sun } }
-                                                                MONDAY -> { pair.second.any { v -> v == Mon } }
-                                                                TUESDAY -> { pair.second.any { v -> v == Tue } }
-                                                                WEDNESDAY -> { pair.second.any { v -> v == Wed } }
-                                                                THURSDAY -> { pair.second.any { v -> v == Thu } }
-                                                                FRIDAY -> { pair.second.any { v -> v == Fri } }
-                                                                SATURDAY -> { pair.second.any { v -> v == Sat } }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                .execute(supportFragmentManager)
-                                        }
+                        MONTHLY_NTH_DAY -> {
+                            MonthlyWeekRepeatDialogFragment(unit.text)
+                                .onSubmit { pair ->
+                                    setTargetDateIdentifier {
+                                        MonthlyWeekIdentifier(pair.first, pair.second)
                                     }
                                 }
                                 .execute(supportFragmentManager)
