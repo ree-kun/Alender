@@ -11,5 +11,12 @@ enum class Day(
     Thu("木曜日"),
     Fri("金曜日"),
     Sat("土曜日"),
+    ;
+
+    companion object {
+        fun of(name: String): Day? {
+            return values().find { it.name == name }
+        }
+    }
 
 }

@@ -3,6 +3,7 @@ package com.example.customalarm.calendar
 import android.content.res.Resources
 import androidx.core.content.res.ResourcesCompat
 import com.example.customalarm.R
+import com.example.customalarm.calendar.logic.CalendarTargetIdentifierGenerator
 import com.example.customalarm.common.data.CalendarHelper
 import com.prolificinteractive.materialcalendarview.*
 import org.threeten.bp.LocalDate
@@ -30,10 +31,6 @@ class CalendarDecorator(
         view.setBackgroundDrawable(res!!)
     }
 
-}
-
-fun interface CalendarTargetIdentifierGenerator {
-    fun generate(targetDateTime: LocalDateTime): CalendarTargetIdentifier
 }
 
 fun interface CalendarTargetIdentifier {

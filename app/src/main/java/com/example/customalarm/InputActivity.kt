@@ -9,13 +9,8 @@ import android.widget.NumberPicker.OnScrollListener.SCROLL_STATE_IDLE
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.customalarm.calendar.CalendarDecorator
-import com.example.customalarm.calendar.CalendarTargetIdentifier
-import com.example.customalarm.calendar.CalendarTargetIdentifierGenerator
 import com.example.customalarm.calendar.HolidayDecorator
-import com.example.customalarm.calendar.logic.DailyIdentifier
-import com.example.customalarm.calendar.logic.MonthlyDayIdentifier
-import com.example.customalarm.calendar.logic.MonthlyWeekIdentifier
-import com.example.customalarm.calendar.logic.WeeklyIdentifier
+import com.example.customalarm.calendar.logic.*
 import com.example.customalarm.calendar.logic.dto.MonthlyDay
 import com.example.customalarm.common.Constant.Companion.MAX_END_OF_MONTH
 import com.example.customalarm.common.Constant.Companion.MIN_END_OF_MONTH
@@ -35,29 +30,16 @@ import com.example.customalarm.dialog.list.RepeatUnit.*
 import com.example.customalarm.util.Util
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView
 import kotlinx.coroutines.*
-import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
-import org.threeten.bp.LocalTime
 
 class InputActivity : AppCompatActivity() {
 
     private lateinit var alarmSettingDao: AlarmSettingDao
     private lateinit var holidayDao: HolidayDao
 
-    private lateinit var generator: CalendarTargetIdentifierGenerator
     private var currentDecorator: CalendarDecorator? = null
-    private val defaultDecorateTarget = { targetDateTime: LocalDateTime ->
-        val now = LocalDateTime.now()
-        var targetDate = targetDateTime.toLocalDate()
 
-        if (now.isAfter(targetDateTime))
-            targetDate = targetDate.plusDays(1)
-
-        CalendarTargetIdentifier { it.isEqual(targetDate) }
-    }
-
-    private lateinit var targetDate: LocalDate
-    private lateinit var targetTime: LocalTime
+    private lateinit var entity: AlarmSettingEntity
 
     private lateinit var holidays: List<HolidayEntity>
 
@@ -75,29 +57,26 @@ class InputActivity : AppCompatActivity() {
         alarmSettingDao = AppDatabase.getDatabase(applicationContext).alarmSettingDao()
         holidayDao = AppDatabase.getDatabase(applicationContext).holidayDao()
 
-        val editMode = intent.getIntExtra("editMode", -1)
-        val alarmId = intent.getLongExtra("alarmId", 0)
-        // editModeがなくても、alarmIdの有無で判定しても同じ。
-        when (editMode) {
+        when (intent.getIntExtra("editMode", -1)) {
             CREATE_MODE -> { setupCreateMode() }
-            EDIT_MODE -> { setupEditMode(alarmId) }
+            EDIT_MODE -> { setupEditMode() }
             else -> { /** do nothing */ }
         }
 
         settingTimeDrum()
         settingInputs()
-        settingOperationButton(alarmId)
+        settingOperationButton()
         settingCalendar()
     }
 
     private fun settingCalendar() {
         calendar = findViewById(R.id.calendar)
 //        calendar.firstDayOfWeek = FIRST_DAY_OF_WEEK
-        val calendarDay = CalendarHelper.toCalendarDay(targetDate)
+        val calendarDay = CalendarHelper.toCalendarDay(entity.startDate)
         calendar.selectRange(calendarDay, calendarDay)
 
         calendar.setOnDateChangedListener { _, date, _ ->
-            targetDate = CalendarHelper.toLocalDate(date)
+            entity.startDate = CalendarHelper.toLocalDate(date)
             refreshTargetDate()
         }
 
@@ -105,8 +84,6 @@ class InputActivity : AppCompatActivity() {
             holidays = holidayDao.selectAll()
             calendar.addDecorator(HolidayDecorator(resources, holidays))
         }
-
-        setTargetDateIdentifier(defaultDecorateTarget)
     }
 
     private fun settingTimeDrum() {
@@ -117,12 +94,12 @@ class InputActivity : AppCompatActivity() {
         // 配列のインデックス最小、最大を指定
         hourPicker.minValue = 0
         hourPicker.maxValue = 23
-        hourPicker.value = targetTime.hour
+        hourPicker.value = entity.time.hour
 
         hourPicker.setOnScrollListener { _, scrollState ->
             if (SCROLL_STATE_IDLE == scrollState) {
                 // スクロール後、カレンダー上の通知日を更新する
-                targetTime = targetTime.withHour(hourPicker.value)
+                entity.time = entity.time.withHour(hourPicker.value)
                 refreshTargetDate()
             }
         }
@@ -136,12 +113,12 @@ class InputActivity : AppCompatActivity() {
         minutePicker.maxValue = minutes.size - 1
         // NumberPickerに配列をセットする
         minutePicker.displayedValues = minutes
-        minutePicker.value = targetTime.minute / TIME_PITCH
+        minutePicker.value = entity.time.minute / TIME_PITCH
 
         minutePicker.setOnScrollListener { _, scrollState ->
             if (SCROLL_STATE_IDLE == scrollState) {
                 // スクロール後、カレンダー上の通知日を更新する
-                targetTime = targetTime.withMinute(minutePicker.value * TIME_PITCH)
+                entity.time = entity.time.withMinute(minutePicker.value * TIME_PITCH)
                 refreshTargetDate()
             }
         }
@@ -155,14 +132,12 @@ class InputActivity : AppCompatActivity() {
                 .onSubmit { unit ->
                     when (unit) {
                         NO_REPEAT -> {
-                            setTargetDateIdentifier(defaultDecorateTarget)
+                            setTargetDateIdentifier(NoRepeatIdentifierGenerator())
                         }
                         DAILY -> {
                             DailyRepeatDialogFragment(unit.text)
                                 .onSubmit { pitch ->
-                                    setTargetDateIdentifier { targetDateTime ->
-                                        DailyIdentifier(targetDateTime, pitch)
-                                    }
+                                    setTargetDateIdentifier(DailyIdentifierGenerator(pitch))
                                 }
                                 .execute(supportFragmentManager)
                         }
@@ -171,9 +146,7 @@ class InputActivity : AppCompatActivity() {
                             // 従って、フォームは１種類で良い。
                             WeeklyRepeatDialogFragment(unit.text)
                                 .onSubmit { pair ->
-                                    setTargetDateIdentifier { targetDateTime ->
-                                        WeeklyIdentifier(targetDateTime, pair.first, pair.second)
-                                    }
+                                    setTargetDateIdentifier(WeeklyIdentifierGenerator(pair.first, pair.second))
                                 }
                                 .execute(supportFragmentManager)
                         }
@@ -190,15 +163,11 @@ class InputActivity : AppCompatActivity() {
                                         val title = "月末${buff}がない場合の設定"
                                         SingleChoiceDialogFragment(title, EndOfMonth.values())
                                             .onSubmit { endOfMonth ->
-                                                setTargetDateIdentifier {
-                                                    MonthlyDayIdentifier(list, endOfMonth)
-                                                }
+                                                setTargetDateIdentifier(MonthlyDayIdentifierGenerator(list, endOfMonth))
                                             }
                                             .execute(supportFragmentManager)
                                     } else {
-                                        setTargetDateIdentifier {
-                                            MonthlyDayIdentifier(list)
-                                        }
+                                        setTargetDateIdentifier(MonthlyDayIdentifierGenerator(list))
                                     }
                                 }
                                 .execute(supportFragmentManager)
@@ -206,9 +175,7 @@ class InputActivity : AppCompatActivity() {
                         MONTHLY_NTH_DAY -> {
                             MonthlyWeekRepeatDialogFragment(unit.text)
                                 .onSubmit { pair ->
-                                    setTargetDateIdentifier {
-                                        MonthlyWeekIdentifier(pair.first, pair.second)
-                                    }
+                                    setTargetDateIdentifier(MonthlyWeekIdentifierGenerator(pair.first, pair.second))
                                 }
                                 .execute(supportFragmentManager)
                         }
@@ -219,7 +186,7 @@ class InputActivity : AppCompatActivity() {
         }
     }
 
-    private fun settingOperationButton(alarmId: Long) {
+    private fun settingOperationButton() {
         cancelButton = findViewById(R.id.cancelButton)
         saveButton = findViewById(R.id.saveButton)
 
@@ -229,9 +196,8 @@ class InputActivity : AppCompatActivity() {
         }
 
         saveButton.setOnClickListener {
-            val editAlarmTitle = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
+            entity.title = findViewById<EditText>(R.id.editAlarmTitle).text.toString()
 
-            val entity = AlarmSettingEntity(alarmId, editAlarmTitle, targetDate, targetTime)
             runBlocking {
                 saveAlarmSetting(entity)
                 Util.scheduleAlarm(applicationContext, entity)
@@ -243,28 +209,27 @@ class InputActivity : AppCompatActivity() {
 
     private fun setupCreateMode() {
         val now = LocalDateTime.now()
-        targetDate = now.toLocalDate()
-        targetTime = now.toLocalTime()
+        entity = AlarmSettingEntity(0, "", now.toLocalDate(), now.toLocalTime(), NoRepeatIdentifierGenerator())
     }
 
-    private fun setupEditMode(alarmId: Long) {
+    private fun setupEditMode() {
+        val alarmId = intent.getLongExtra("alarmId", 0)
         runBlocking {
             val alarmSettingEntity = alarmSettingDao.selectById(alarmId)
 
             findViewById<EditText>(R.id.editAlarmTitle).setText(alarmSettingEntity.title)
-            targetDate = alarmSettingEntity.startDate
-            targetTime = alarmSettingEntity.time
+            entity = alarmSettingEntity
         }
     }
 
     private fun setTargetDateIdentifier(generator: CalendarTargetIdentifierGenerator) {
-        this.generator = generator
+        entity.generator = generator
         refreshTargetDate()
     }
 
     private fun refreshTargetDate() {
         if (currentDecorator != null) calendar.removeDecorator(currentDecorator)
-        currentDecorator = CalendarDecorator(resources, targetDate.atTime(targetTime), generator)
+        currentDecorator = CalendarDecorator(resources, entity.startDate.atTime(entity.time), entity.generator)
         calendar.addDecorator(currentDecorator)
     }
 

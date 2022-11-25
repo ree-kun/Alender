@@ -7,10 +7,11 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.customalarm.data.converter.DateTimeConverter
+import com.example.customalarm.data.converter.GeneratorConverter
 import com.example.customalarm.data.entity.*
 
 @Database(entities = [AlarmSettingEntity::class, HolidayEntity::class], version = 1, exportSchema = false)
-@TypeConverters(DateTimeConverter::class)
+@TypeConverters(DateTimeConverter::class, GeneratorConverter::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun alarmSettingDao(): AlarmSettingDao

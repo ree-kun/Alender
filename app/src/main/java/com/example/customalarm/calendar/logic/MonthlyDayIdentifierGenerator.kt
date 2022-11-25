@@ -3,17 +3,24 @@ package com.example.customalarm.calendar.logic
 import com.example.customalarm.calendar.CalendarTargetIdentifier
 import com.example.customalarm.calendar.logic.dto.MonthlyDay
 import com.example.customalarm.dialog.list.EndOfMonth
+import com.example.customalarm.dialog.list.RepeatUnit
+import com.example.customalarm.dialog.list.RepeatUnit.*
 import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
 
-class MonthlyDayIdentifier(
+class MonthlyDayIdentifierGenerator(
     private val monthlyDays: List<MonthlyDay>,
     private val endOfMonth: EndOfMonth? = null,
-) : CalendarTargetIdentifier {
+) : CalendarTargetIdentifierGenerator() {
 
     private val checker = if (endOfMonth == null) this::checkNormally else this::checkEndOfMonth
 
-    override fun isTarget(calendarDate: LocalDate): Boolean {
-        return checker(calendarDate)
+    override fun repeatUnit(): RepeatUnit {
+        return MONTHLY_DAY
+    }
+
+    override fun generate(targetDateTime: LocalDateTime): CalendarTargetIdentifier {
+        return CalendarTargetIdentifier { checker(it) }
     }
 
     private fun checkNormally(calendarDate: LocalDate): Boolean {
@@ -37,6 +44,13 @@ class MonthlyDayIdentifier(
             }
             EndOfMonth.NO_SET -> { false }
         }
+    }
+
+    override fun registerValues(): List<String> {
+        val result = mutableListOf<String>()
+        result.addAll(monthlyDays.map { it.dayOfMonth.toString() })
+        result.add(endOfMonth?.name ?: "")
+        return result
     }
 
 }

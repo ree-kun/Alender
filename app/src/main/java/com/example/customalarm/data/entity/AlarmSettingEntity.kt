@@ -2,6 +2,7 @@ package com.example.customalarm.data.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.customalarm.calendar.logic.CalendarTargetIdentifierGenerator
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
 
@@ -11,10 +12,12 @@ data class AlarmSettingEntity (
     @PrimaryKey(autoGenerate = true)
     var id: Long,
 
-    val title: String,
+    var title: String,
 
-    val startDate: LocalDate,
+    var startDate: LocalDate,
 
-    val time: LocalTime,
+    var time: LocalTime,
+
+    var generator: CalendarTargetIdentifierGenerator,
 
 )

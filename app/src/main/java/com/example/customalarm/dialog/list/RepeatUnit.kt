@@ -10,5 +10,12 @@ enum class RepeatUnit(
     MONTHLY_DAY("毎月◯日"),
     MONTHLY_NTH_DAY("毎月第◯ ◯曜日"),
 //    YEARLY("年ごとに設定"),
+    ;
+
+    companion object {
+        fun of(name: String): RepeatUnit? {
+            return values().find { it.name == name }
+        }
+    }
 
 }
