@@ -67,6 +67,7 @@ class InputActivity : AppCompatActivity() {
         settingInputs()
         settingOperationButton()
         settingCalendar()
+        refresh()
     }
 
     private fun settingCalendar() {
@@ -224,13 +225,22 @@ class InputActivity : AppCompatActivity() {
 
     private fun setTargetDateIdentifier(generator: CalendarTargetIdentifierGenerator) {
         entity.generator = generator
+        refresh()
+    }
+
+    private fun refresh() {
         refreshTargetDate()
+        refreshRepeatText()
     }
 
     private fun refreshTargetDate() {
         if (currentDecorator != null) calendar.removeDecorator(currentDecorator)
         currentDecorator = CalendarDecorator(resources, entity.startDate.atTime(entity.time), entity.generator)
         calendar.addDecorator(currentDecorator)
+    }
+
+    private fun refreshRepeatText() {
+        alarmRepeat.text = entity.generator.text()
     }
 
     private suspend fun saveAlarmSetting(entity: AlarmSettingEntity) {

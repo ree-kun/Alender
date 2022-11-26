@@ -14,4 +14,8 @@ abstract class CalendarTargetIdentifierGenerator {
         return mutableListOf()
     }
 
+    open fun text(): String {
+        return repeatUnit().text
+    }
+
 }

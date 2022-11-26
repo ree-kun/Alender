@@ -53,4 +53,14 @@ class MonthlyDayIdentifierGenerator(
         return result
     }
 
+    override fun text(): String {
+        return "毎月${
+            monthlyDays.filter { it.dayOfMonth > 0 }.joinToString(",") { it.dayOfMonth.toString() }
+        }日 ${
+            monthlyDays.filter { it.dayOfMonth < 0 }.joinToString(",") { it.text }
+        } ${
+            endOfMonth?.text ?: ""
+        }"
+    }
+
 }

@@ -6,27 +6,19 @@ import android.view.LayoutInflater
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import com.example.customalarm.R
+import com.example.customalarm.calendar.logic.dto.NthDay
 import com.example.customalarm.dialog.list.Day
 
 class MonthlyWeekRepeatDialogFragment(
     title: String
-) : AbstractDialogFragment<Pair<List<Int>, List<Day>>>(title) {
+) : AbstractDialogFragment<Pair<List<NthDay>, List<Day>>>(title) {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val monthlyWeekRepeatLayout = LayoutInflater.from(activity).inflate(R.layout.dialog_repeat_monthly_week, null)
         val weekSelect = monthlyWeekRepeatLayout.findViewById<LinearLayout>(R.id.weekSelect)
         val daySelect = monthlyWeekRepeatLayout.findViewById<LinearLayout>(R.id.daySelect)
 
-        val weekOption = ((1..5) + (-1..-1)).map {
-            object {
-                val value = it
-                val text = if (it > 0) "毎月第${it}"
-                else when (it) {
-                    -1 -> "毎月最終"
-                    else -> ""
-                }
-            }
-        }
+        val weekOption = ((1..5) + (-1..-1)).map { NthDay(it) }
         weekOption.forEach {
             val checkBox = CheckBox(activity)
             checkBox.text = it.text
@@ -52,8 +44,7 @@ class MonthlyWeekRepeatDialogFragment(
                     Pair(
                         weekOption.filterIndexed { i, _ ->
                             (weekSelect.getChildAt(i) as CheckBox).isChecked
-                        }
-                            .map { it.value },
+                        },
                         Day.values().filterIndexed { i, _ ->
                             (daySelect.getChildAt(i) as CheckBox).isChecked
                         }

@@ -31,7 +31,7 @@ class ListAdapter(private val data: List<AlarmSettingEntity>) :
 
     override fun onBindViewHolder(holder: ListViewHolder, position: Int) {
         val alarmSetting = data[position]
-        holder.title.text = alarmSetting.title
+        holder.title.text = "${alarmSetting.title} ${alarmSetting.generator.text()}"
         holder.time.text = "${alarmSetting.time.hour}:${alarmSetting.time.minute.toString().padStart(2, '0')}"
     }
 

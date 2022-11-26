@@ -7,27 +7,22 @@ import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.NumberPicker
 import com.example.customalarm.R
+import com.example.customalarm.calendar.logic.dto.WeeklyPitch
 import com.example.customalarm.dialog.list.Day
 
 class WeeklyRepeatDialogFragment(
     title: String
-) : AbstractDialogFragment<Pair<Int, List<Day>>>(title) {
+) : AbstractDialogFragment<Pair<WeeklyPitch, List<Day>>>(title) {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val weekRepeatLayout = LayoutInflater.from(activity).inflate(R.layout.dialog_repeat_week, null)
         val daySelect = weekRepeatLayout.findViewById<LinearLayout>(R.id.daySelect)
 
         val weeklyPitch = weekRepeatLayout.findViewById<NumberPicker>(R.id.weeklyPitch)
-        val repeatTypes = Array(100) {
-            when (it) {
-                0 -> "毎週"
-                1 -> "隔週"
-                else -> "${it + 1}週間ごと"
-            }
-        }
+        val repeatTypes = (1..100).map { WeeklyPitch(it) }
         weeklyPitch.minValue = 0
         weeklyPitch.maxValue = repeatTypes.size - 1
-        weeklyPitch.displayedValues = repeatTypes
+        weeklyPitch.displayedValues = repeatTypes.map { it.text }.toTypedArray()
         weeklyPitch.wrapSelectorWheel = false
 
         Day.values().forEach { day ->
@@ -44,7 +39,7 @@ class WeeklyRepeatDialogFragment(
             .setPositiveButton("OK") { _, _ ->
                 lister.onDialogSelect(
                     Pair(
-                        weeklyPitch.value + 1,
+                        repeatTypes[weeklyPitch.value],
                         Day.values()
                             .filterIndexed { i, _ ->
                                 (daySelect.getChildAt(i) as CheckBox).isChecked
