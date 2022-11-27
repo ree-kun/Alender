@@ -2,6 +2,7 @@ package com.example.customalarm
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View.*
 import android.widget.Button
 import android.widget.EditText
 import android.widget.NumberPicker
@@ -49,6 +50,7 @@ class InputActivity : AppCompatActivity() {
     private lateinit var calendar: MaterialCalendarView
     private lateinit var cancelButton: Button
     private lateinit var saveButton: Button
+    private lateinit var deleteButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +59,8 @@ class InputActivity : AppCompatActivity() {
         alarmSettingDao = AppDatabase.getDatabase(applicationContext).alarmSettingDao()
         holidayDao = AppDatabase.getDatabase(applicationContext).holidayDao()
 
-        when (intent.getIntExtra("editMode", -1)) {
+        val mode = intent.getIntExtra("editMode", -1)
+        when (mode) {
             CREATE_MODE -> { setupCreateMode() }
             EDIT_MODE -> { setupEditMode() }
             else -> { /** do nothing */ }
@@ -65,7 +68,7 @@ class InputActivity : AppCompatActivity() {
 
         settingTimeDrum()
         settingInputs()
-        settingOperationButton()
+        settingOperationButton(mode)
         settingCalendar()
         refresh()
     }
@@ -187,9 +190,10 @@ class InputActivity : AppCompatActivity() {
         }
     }
 
-    private fun settingOperationButton() {
+    private fun settingOperationButton(mode: Int) {
         cancelButton = findViewById(R.id.cancelButton)
         saveButton = findViewById(R.id.saveButton)
+        deleteButton = findViewById(R.id.deleteButton)
 
         cancelButton.setOnClickListener {
             setResult(RESULT_CANCELED)
@@ -205,6 +209,19 @@ class InputActivity : AppCompatActivity() {
             }
             setResult(RESULT_OK, Intent())
             finish()
+        }
+
+        if (mode == CREATE_MODE) {
+            deleteButton.visibility = GONE
+        } else {
+            deleteButton.setOnClickListener {
+                runBlocking {
+                    alarmSettingDao.removeAlarmSetting(entity)
+                    // TODO 設定済みの通知をキャンセルする
+                }
+                setResult(RESULT_OK)
+                finish()
+            }
         }
     }
 

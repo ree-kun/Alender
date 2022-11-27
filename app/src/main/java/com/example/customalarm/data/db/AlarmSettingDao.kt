@@ -1,6 +1,7 @@
 package com.example.customalarm.data.db
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -21,5 +22,8 @@ interface AlarmSettingDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveAlarmSetting(entity: AlarmSettingEntity): Long
+
+    @Delete
+    suspend fun removeAlarmSetting(entity: AlarmSettingEntity)
 
 }
