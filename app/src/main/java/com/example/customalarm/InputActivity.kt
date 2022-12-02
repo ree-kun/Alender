@@ -217,7 +217,7 @@ class InputActivity : AppCompatActivity() {
             deleteButton.setOnClickListener {
                 runBlocking {
                     alarmSettingDao.removeAlarmSetting(entity)
-                    // TODO 設定済みの通知をキャンセルする
+                    Util.cancelAlarm(applicationContext, entity.id)
                 }
                 setResult(RESULT_OK)
                 finish()
