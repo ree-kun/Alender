@@ -252,7 +252,7 @@ class InputActivity : AppCompatActivity() {
 
     private fun refreshTargetDate() {
         if (currentDecorator != null) calendar.removeDecorator(currentDecorator)
-        currentDecorator = CalendarDecorator(resources, entity.startDate.atTime(entity.time), entity.generator)
+        currentDecorator = CalendarDecorator(resources, entity)
         calendar.addDecorator(currentDecorator)
     }
 

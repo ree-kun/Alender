@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import com.example.customalarm.data.entity.AlarmSettingEntity
+import com.example.customalarm.dialog.list.RepeatUnit.*
 import com.example.customalarm.receiver.AlarmReceiver
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
@@ -14,21 +15,17 @@ import org.threeten.bp.ZoneOffset
 
 object Util {
 
-    fun scheduleAlarm(context: Context, item: AlarmSettingEntity) {
-        var time = LocalDateTime.of(LocalDate.now(), item.time)
-
-        val now = LocalDateTime.now()
-        // 当日の設定時刻を過ぎている場合は次の設定時刻へ変更 TODO 同日中に複数回繰り返す場合の考慮漏れ
-        if (time.isBefore(now)) time = calcNextAlarmTime(time)
+    fun scheduleAlarm(context: Context, entity: AlarmSettingEntity) {
+        val time = calcAlarmDateTime(entity) ?: return
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java)
-        intent.data = Uri.parse(item.id.toString())
+        intent.data = Uri.parse(entity.id.toString())
 
         var pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) pendingFlags =
             pendingFlags or PendingIntent.FLAG_IMMUTABLE
-        val alarmIntent = PendingIntent.getBroadcast(context, item.id.toInt(), intent, pendingFlags)
+        val alarmIntent = PendingIntent.getBroadcast(context, entity.id.toInt(), intent, pendingFlags)
 
         val timeInMillis = time.atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli()
 
@@ -44,7 +41,23 @@ object Util {
         }
     }
 
-    private fun calcNextAlarmTime(prev: LocalDateTime): LocalDateTime {
-        return prev.plusDays(1)
+    // TODO 同日中に複数回繰り返す場合を考慮する
+    private fun calcAlarmDateTime(entity: AlarmSettingEntity): LocalDateTime? {
+        val firstTargetTime = entity.startDate.atTime(entity.time)
+        val identifier = entity.generator.generate(firstTargetTime)
+
+        val todayTargetTime = LocalDate.now().atTime(entity.time)
+
+        return if (firstTargetTime.isBefore(todayTargetTime)) {
+            if (entity.generator.repeatUnit() == NO_REPEAT) return null
+
+            var targetDateTime = todayTargetTime
+            do {
+                targetDateTime = targetDateTime.plusDays(1)
+            } while (!identifier.isTarget(targetDateTime.toLocalDate()))
+            targetDateTime
+        } else {
+            firstTargetTime
+        }
     }
 }
